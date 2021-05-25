@@ -1,0 +1,26 @@
+-- Table: risco_v2_publico_dev.risco_find
+
+-- DROP TABLE risco_v2_publico_dev.risco_find;
+
+CREATE TABLE risco_v2_publico_dev.risco_find
+(
+    falias character varying(64) COLLATE pg_catalog."default" NOT NULL,
+    alias character varying COLLATE pg_catalog."default" NOT NULL,
+    ord smallint NOT NULL DEFAULT 1,
+    inuse boolean NOT NULL DEFAULT true,
+    filteradapt text COLLATE pg_catalog."default",
+    target risco_v2_publico.find_target,
+    fschema character varying(64) COLLATE pg_catalog."default",
+    CONSTRAINT pk_risco_find PRIMARY KEY (falias, ord)
+        USING INDEX TABLESPACE sde_tbs_01
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE sde_tbs_01;
+
+ALTER TABLE risco_v2_publico_dev.risco_find
+    OWNER to sup_ap;
+
+COMMENT ON COLUMN risco_v2_publico_dev.risco_find.filteradapt
+    IS 'array JSON contendo itens de formatação para colocar os elementos do array de valores nas posições corretas face à localização dos parâmetros variáveis ';

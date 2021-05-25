@@ -1,0 +1,25 @@
+-- Table: risco_v2_publico_dev.risco_request
+
+-- DROP TABLE risco_v2_publico_dev.risco_request;
+
+CREATE TABLE risco_v2_publico_dev.risco_request
+(
+    reqid uuid NOT NULL DEFAULT uuid_generate_v1(),
+    cenx numeric NOT NULL,
+    ceny numeric NOT NULL,
+    wid numeric NOT NULL,
+    hei numeric NOT NULL,
+    filter_fname character varying(64) COLLATE pg_catalog."default",
+    filter_value text COLLATE pg_catalog."default",
+    filter_lname character varying(64) COLLATE pg_catalog."default",
+    pixsz numeric NOT NULL,
+    CONSTRAINT pk_request_ PRIMARY KEY (reqid)
+        USING INDEX TABLESPACE sde_tbs_01
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE sde_tbs_01;
+
+ALTER TABLE risco_v2_publico_dev.risco_request
+    OWNER to sup_ap;
