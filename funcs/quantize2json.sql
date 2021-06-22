@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION risco_v2_publico_dev.quantize2json(p_creqid character varying, p_layer_name character varying, p_chunks integer, p_vertexcnt integer, p_chunk integer DEFAULT 1)
+CREATE OR REPLACE FUNCTION risco_v2.quantize2json(p_creqid character varying, p_layer_name character varying, p_chunks integer, p_vertexcnt integer, p_chunk integer DEFAULT 1)
  RETURNS text
  LANGUAGE plpgsql
 AS $function$
@@ -32,9 +32,18 @@ DECLARE
     v_reqid uuid;
 
 	--v_base_table regclass;
-
+	v_t0 timestamp;
+	v_t1 timestamp;
+	v_t2 timestamp;
+	v_profile boolean;
 BEGIN
+	v_profile := 'f'; -- controle profiling layers
 
+	if v_profile then
+		v_t0 := clock_timestamp();
+		v_t1 := clock_timestamp();
+	end if;
+	
 	IF p_chunk < 1 OR p_chunk > p_chunks THEN
         select json_build_object('sign',v_sign,
                 'lname', p_layer_name,
@@ -55,14 +64,26 @@ BEGIN
 			filter_lname, filter_fname, filter_value
     INTO v_cenx, v_ceny, v_width, v_height, v_pixsz,
 			v_filter_fname, v_filter_lname, v_filter_value
-    FROM risco_v2_publico_dev.risco_request
+    FROM risco_v2.risco_request
 	WHERE reqid = v_reqid;
+
+	if v_profile then
+		v_t2 := clock_timestamp();
+		raise notice '..... timing A: %  accum:%', (v_t2 - v_t1), (v_t2 - v_t0); 
+		v_t1 := v_t2;
+	end if;
 
     SELECT lyrid, schema, tname, oidfname, adic_fields_str
     INTO v_lyrid, v_schema, v_tablename, v_oidfldname, v_adic_flds_str
-    FROM risco_v2_publico_dev.risco_layerview
+    FROM risco_v2.risco_layerview
 	WHERE lname = p_layer_name;
-	
+
+	if v_profile then
+		v_t2 := clock_timestamp();
+		raise notice '..... timing B: %  accum:%', (v_t2 - v_t1), (v_t2 - v_t0); 
+		v_t1 := v_t2;
+	end if;
+
 	IF NOT v_filter_fname IS NULL and LENGTH(v_filter_fname) > 0 
 		AND LOWER(v_filter_lname) = LOWER(p_layer_name)
 	THEN
@@ -82,7 +103,7 @@ BEGIN
  		v_sql := 'with delsel as (' ||
  			'select oidv, the_geom as snapped_shape ' ||
 			--'delete '
-			'from risco_v2_publico_dev.risco_request_geometry ' ||
+			'from risco_v2.risco_request_geometry ' ||
 			'WHERE NOT the_geom IS NULL ' ||
 			'AND reqid = $13 ' ||
 			'AND lyrid = $14 ' ||
@@ -93,7 +114,7 @@ BEGIN
                 '''chnk'', $6, ''nchunks'', $7, ' ||
                 '''cont'', json_object_agg(c.oidv, c.cont) ) ' ||
                 'from (select oidv, ' ||
-                'json_build_object(''typ'', risco_v2_publico_dev.util_condensed_type(geomtype), ';
+                'json_build_object(''typ'', risco_v2.util_condensed_type(geomtype), ';
                 
         IF v_adicflds_flag THEN
 			
@@ -101,7 +122,7 @@ BEGIN
         
         END IF;
     
-        v_sql := v_sql || '''crds'', risco_v2_publico_dev.gen_coords_elem(snapped_shape, $8, $9, $10) ) cont ' ||
+        v_sql := v_sql || '''crds'', risco_v2.gen_coords_elem(snapped_shape, $8, $9, $10) ) cont ' ||
                     'from (select a.*, GeometryType(snapped_shape) geomtype, '                
                     'ceil(1.0 * $11 * sum(st_npoints(snapped_shape)) over (order by st_npoints(snapped_shape) desc, oidv) / $12) chnk ' ||   
                     'from (select delsel.oidv, delsel.snapped_shape';            
@@ -113,7 +134,7 @@ BEGIN
 		v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || ' t1 inner join delsel ' ||
 				'on t1.' || v_oidfldname || ' = delsel.oidv';
 	
-		/*v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || ' t1 inner join risco_v2_publico_dev.risco_request_geometry t2 ' ||
+		/*v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || ' t1 inner join risco_v2.risco_request_geometry t2 ' ||
 				'on t1.' || v_oidfldname || ' = t2.oidv ' ||                   
 				'WHERE NOT t2.the_geom IS NULL AND t2.reqid = $13 ' ||
 				'AND lyrid = $14' ||
@@ -123,11 +144,11 @@ BEGIN
 
 			v_sql := v_sql || ' and t1.' || p_filter_fname || ' = $15) a) b where b.chnk = $16) c';
 
-			INSERT INTO risco_v2_publico_dev.risco_msgs (severity, context, msg, params)
+			/*INSERT INTO risco_v2.risco_msgs (severity, context, msg, params)
 			VALUES
-			(0, 'risco_v2_publico_dev.quantize2json A', v_sql, json_build_array(v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
+			(0, 'risco_v2.quantize2json A', v_sql, json_build_array(v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
 					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, v_filter_value, p_chunk));
+					p_chunks, p_vertexcnt, v_reqid, v_lyrid, v_filter_value, p_chunk)); */
 		
 			/*RAISE EXCEPTION 'a %, %, %, %, %, %, %, %, %, %, %, %, %, %, %, %',
 					v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
@@ -144,11 +165,11 @@ BEGIN
         
 			v_sql := v_sql || ') a) b where b.chnk = $15) c';
 
-			INSERT INTO risco_v2_publico_dev.risco_msgs (severity, context, msg, params)
+			/* INSERT INTO risco_v2.risco_msgs (severity, context, msg, params)
 			VALUES
-			(0, 'risco_v2_publico_dev.quantize2json B', v_sql, json_build_array(v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
+			(0, 'risco_v2.quantize2json B', v_sql, json_build_array(v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
 					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, p_chunk));
+					p_chunks, p_vertexcnt, v_reqid, v_lyrid, p_chunk)); */
 		
 			--RAISE EXCEPTION  'v_sql: %', v_sql;
 
@@ -164,13 +185,19 @@ BEGIN
 					p_chunks, p_vertexcnt, v_reqid, v_lyrid, p_chunk;
 
         END IF;
-   
+
+		if v_profile then
+			v_t2 := clock_timestamp();
+			raise notice '..... timing C1: %  accum:%', (v_t2 - v_t1), (v_t2 - v_t0); 
+			v_t1 := v_t2;
+		end if;
+       
     ELSE
     
 		with delsel as (
 			--delete 
 			select oidv, the_geom as snapped_shape 
-			from risco_v2_publico_dev.risco_request_geometry 
+			from risco_v2.risco_request_geometry 
 			WHERE NOT the_geom IS NULL
 			AND reqid = v_reqid
 			AND lyrid = v_lyrid
@@ -182,8 +209,8 @@ BEGIN
 			'cont', json_object_agg(c.oidv, c.cont) ) 
 			from (
 				select oidv, 
-				json_build_object('typ', risco_v2_publico_dev.util_condensed_type(geomtype), 
-				'crds', risco_v2_publico_dev.gen_coords_elem(snapped_shape, v_cenx, v_ceny, v_pixsz) ) cont 
+				json_build_object('typ', risco_v2.util_condensed_type(geomtype), 
+				'crds', risco_v2.gen_coords_elem(snapped_shape, v_cenx, v_ceny, v_pixsz) ) cont 
 				from (
 					select delsel.*, GeometryType(snapped_shape) geomtype,              
 					ceil(1.0 * p_chunks * sum(st_npoints(snapped_shape)) over (order by st_npoints(snapped_shape) desc, oidv) / p_vertexcnt) chnk
@@ -193,6 +220,12 @@ BEGIN
 			) c 
 		INTO STRICT v_retobj;
 
+		if v_profile then
+			v_t2 := clock_timestamp();
+			raise notice '..... timing C2: %  accum:%', (v_t2 - v_t1), (v_t2 - v_t0); 
+			v_t1 := v_t2;
+		end if;
+	
     END IF;
 
 	RETURN v_retobj;
@@ -204,6 +237,6 @@ $function$
 
 -- Permissions
 
-ALTER FUNCTION risco_v2_publico_dev.quantize2json(varchar,varchar,int4,int4,int4) OWNER TO sup_ap;
-GRANT ALL ON FUNCTION risco_v2_publico_dev.quantize2json(varchar,varchar,int4,int4,int4) TO public;
-GRANT ALL ON FUNCTION risco_v2_publico_dev.quantize2json(varchar,varchar,int4,int4,int4) TO sup_ap;
+ALTER FUNCTION risco_v2.quantize2json(varchar,varchar,int4,int4,int4) OWNER TO sup_ap;
+GRANT ALL ON FUNCTION risco_v2.quantize2json(varchar,varchar,int4,int4,int4) TO public;
+GRANT ALL ON FUNCTION risco_v2.quantize2json(varchar,varchar,int4,int4,int4) TO sup_ap;
