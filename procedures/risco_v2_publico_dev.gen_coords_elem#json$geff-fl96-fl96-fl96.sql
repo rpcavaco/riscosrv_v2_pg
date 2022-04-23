@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION risco_v2_publico_dev.gen_coords_elem(p_geom geometry, p_cenx double precision, p_ceny double precision, p_pixsz double precision)
  RETURNS json
- LANGUAGE plpgsql
-AS $function$
+ LANGUAGE 'plpgsql'
+ VOLATILE
+AS $body$
 
 DECLARE
 	v_retobj json;
@@ -78,10 +79,7 @@ BEGIN
     RETURN v_retobj;
 END;
 
-$function$
-;
+$body$;
 
--- Permissions
 
-ALTER FUNCTION risco_v2_publico_dev.gen_coords_elem(geometry,float8,float8,float8) OWNER TO sup_ap;
-GRANT ALL ON FUNCTION risco_v2_publico_dev.gen_coords_elem(geometry,float8,float8,float8) TO sup_ap;
+alter function risco_v2_publico_dev.gen_coords_elem(p_geom geometry, p_cenx double precision, p_ceny double precision, p_pixsz double precision) owner to sup_ap;

@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION risco_v2_publico_dev.clrreq(p_creqid character varying, p_layer_name character varying)
  RETURNS void
- LANGUAGE plpgsql
-AS $function$
+ LANGUAGE 'plpgsql'
+ VOLATILE
+AS $BODY$
 	declare 
 	
 		v_lyrid uuid;
@@ -24,10 +25,7 @@ AS $function$
 		
 	END;
 
-$function$
-;
+$BODY$;
 
--- Permissions
 
-ALTER FUNCTION risco_v2_publico_dev.clrreq(varchar,varchar) OWNER TO sup_ap;
-GRANT ALL ON FUNCTION risco_v2_publico_dev.clrreq(varchar,varchar) TO sup_ap;
+alter function risco_v2_publico_dev.clrreq(p_creqid character varying, p_layer_name character varying) owner to sup_ap;

@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION risco_v2_publico_dev.util_condensed_type(p_geom_type_str character varying)
  RETURNS text
- LANGUAGE plpgsql
-AS $function$
+ LANGUAGE 'plpgsql'
+ VOLATILE
+AS $body$
 
 DECLARE
 	v_ret text;
@@ -25,10 +26,6 @@ BEGIN
 
 END;
 
-$function$
-;
+$body$;
 
--- Permissions
-
-ALTER FUNCTION risco_v2_publico_dev.util_condensed_type(varchar) OWNER TO sup_ap;
-GRANT ALL ON FUNCTION risco_v2_publico_dev.util_condensed_type(varchar) TO sup_ap;
+alter function risco_v2_publico_dev.util_condensed_type(p_geom_type_str character varying) owner to sup_ap;

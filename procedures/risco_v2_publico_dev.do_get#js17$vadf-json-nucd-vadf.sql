@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION risco_v2_publico_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying)
  RETURNS jsonb
- LANGUAGE plpgsql
-AS $function$
+ LANGUAGE 'plpgsql'
+ VOLATILE
+AS $body$
 declare
 	v_row record;
 	v_row2 record;
@@ -132,10 +133,6 @@ begin
 	return v_ret;
 
 END;
-$function$
-;
+$body$;
 
--- Permissions
-
-ALTER FUNCTION risco_v2_publico_dev.do_get(varchar,json,numeric,varchar) OWNER TO sup_ap;
-GRANT ALL ON FUNCTION risco_v2_publico_dev.do_get(varchar,json,numeric,varchar) TO sup_ap;
+alter function risco_v2_publico_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying) owner to sup_ap;
