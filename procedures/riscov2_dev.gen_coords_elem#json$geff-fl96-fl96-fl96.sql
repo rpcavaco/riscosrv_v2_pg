@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION risco_v2_publico_dev.gen_coords_elem(p_geom geometry, p_cenx double precision, p_ceny double precision, p_pixsz double precision)
+CREATE OR REPLACE FUNCTION riscov2_dev.gen_coords_elem(p_geom geometry, p_cenx double precision, p_ceny double precision, p_pixsz double precision)
  RETURNS json
  LANGUAGE 'plpgsql'
  VOLATILE
@@ -82,4 +82,4 @@ END;
 $body$;
 
 
-alter function risco_v2_publico_dev.gen_coords_elem(p_geom geometry, p_cenx double precision, p_ceny double precision, p_pixsz double precision) owner to sup_ap;
+alter function riscov2_dev.gen_coords_elem(p_geom geometry, p_cenx double precision, p_ceny double precision, p_pixsz double precision) owner to sup_ap;

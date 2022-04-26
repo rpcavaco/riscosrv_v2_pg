@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION risco_v2_publico_dev.util_condensed_type(p_geom_type_str character varying)
+CREATE OR REPLACE FUNCTION riscov2_dev.util_condensed_type(p_geom_type_str character varying)
  RETURNS text
  LANGUAGE 'plpgsql'
  VOLATILE
@@ -28,4 +28,4 @@ END;
 
 $body$;
 
-alter function risco_v2_publico_dev.util_condensed_type(p_geom_type_str character varying) owner to sup_ap;
+alter function riscov2_dev.util_condensed_type(p_geom_type_str character varying) owner to sup_ap;

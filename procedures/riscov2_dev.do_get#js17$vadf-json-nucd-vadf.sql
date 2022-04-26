@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION risco_v2_publico_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying)
+CREATE OR REPLACE FUNCTION riscov2_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying)
  RETURNS jsonb
  LANGUAGE 'plpgsql'
  VOLATILE
@@ -21,13 +21,15 @@ begin
 		return null;
 	end if;
 
+	perform set_config('search_path', 'riscov2_dev,public', true);
+
 	v_ret := '{}'::jsonb;
 	v_sql_outer_template := 'select json_agg(json_strip_nulls(row_to_json(t))) from (%s) t';
 	
 	for v_row in (
 		select fschema, alias, 
 			target, filteradapt
-		from risco_v2_publico_dev.risco_find	
+		from risco_find	
 		where falias = p_alias_name
 		and inuse
 		order by ord
@@ -60,7 +62,7 @@ begin
 					outer_join, joinschema, joinobj, join_expression, 
 					filter_expression, orderby
 				into v_row2
-			from risco_v2_publico_dev.risco_layerview 
+			from risco_layerview 
 			where alias = v_row.alias
 			and not filter_expression is null
 			and length(filter_expression) > 0;
@@ -76,7 +78,7 @@ begin
 					outer_join, joinschema, joinobj, join_expression, 
 					filter_expression, orderby
 				into v_row2
-			from risco_v2_publico_dev.risco_tableview 
+			from risco_tableview 
 			where alias = v_row.alias
 			and not filter_expression is null
 			and length(fields_str) > 0
@@ -135,4 +137,4 @@ begin
 END;
 $body$;
 
-alter function risco_v2_publico_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying) owner to sup_ap;
+alter function riscov2_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying) owner to sup_ap;

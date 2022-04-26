@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION risco_v2_publico_dev.full_chunk_calc(p_cenx double precision, p_ceny double precision, p_pixsz double precision, p_width double precision, p_height double precision, p_mapname character varying, p_vizlayers character varying, p_filter_lname character varying, p_filter_fname character varying, p_filter_value text)
+CREATE OR REPLACE FUNCTION riscov2_dev.full_chunk_calc(p_cenx double precision, p_ceny double precision, p_pixsz double precision, p_width double precision, p_height double precision, p_mapname character varying, p_vizlayers character varying, p_filter_lname character varying, p_filter_fname character varying, p_filter_value text)
  RETURNS text
  LANGUAGE 'plpgsql'
  VOLATILE
@@ -35,8 +35,10 @@ BEGIN
 		v_t0 := clock_timestamp();
 		v_t1 := clock_timestamp();
 	end if;
-	
-	select srid from risco_v2_publico_dev.risco_map rm 
+
+	perform set_config('search_path', 'riscov2_dev,public', true);
+
+	select srid from risco_map rm 
 	into v_srid
 	where mapid = p_mapname;
 
@@ -49,7 +51,7 @@ BEGIN
 	v_maxx := p_cenx + (p_width/2.0);
 	v_maxy := p_ceny + (p_height/2.0);
 	
-	INSERT INTO risco_v2_publico_dev.risco_request
+	INSERT INTO risco_request
 	(cenx, ceny, wid, hei, pixsz, filter_lname, filter_fname, filter_value)
 	VALUES 
 	(p_cenx, p_ceny, p_width, p_height, p_pixsz,
@@ -73,7 +75,7 @@ BEGIN
 	
 	FOR v_rec IN 
 		SELECT lname, schema, tname, geomfname, oidfname, lyrid, srid
-		FROM risco_v2_publico_dev.risco_layerview 
+		FROM risco_layerview 
 		WHERE inuse
 		AND p_mapname = ANY(maps) 
 	LOOP
@@ -97,7 +99,7 @@ BEGIN
 			
 				IF lower(p_filter_lname) = lower(v_rec.lname) THEN
 				
-					v_sql := 'INSERT INTO risco_v2_publico_dev.risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
+					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
 					'FROM ' || v_rec.schema || '.' || v_rec.tname || ' ' || 
 					'where ST_Intersects(' || v_rec.geomfname || ', $7)' ||
@@ -113,7 +115,7 @@ BEGIN
 							
 				ELSE
 				
-					v_sql := 'INSERT INTO risco_v2_publico_dev.risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
+					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
 					'FROM ' || v_rec.schema || '.' || v_rec.tname || ' ' || 
 					'where ST_Intersects(' || v_rec.geomfname || ', $7) ';
@@ -133,16 +135,16 @@ BEGIN
             
 				WHEN SQLSTATE '42P01' THEN
                 
-					INSERT INTO risco_v2_publico_dev.risco_msgs (severity, context, msg)
+					INSERT INTO risco_msgs (severity, context, msg)
 					VALUES
-					(2, 'risco_v2_publico_dev.full_chunk_calc', v_rec.schema || '.' || v_rec.tname || ': table does not exist');
+					(2, 'full_chunk_calc', v_rec.schema || '.' || v_rec.tname || ': table does not exist');
 					CONTINUE;
                
 				WHEN SQLSTATE '23505' THEN
                 
-					INSERT INTO risco_v2_publico_dev.risco_msgs (severity, context, msg)
+					INSERT INTO risco_msgs (severity, context, msg)
 					VALUES
-					(2, 'risco_v2_publico_dev.full_chunk_calc', v_rec.schema || '.' || v_rec.tname || ': table has non unique GIDs, was removed from response');
+					(2, 'full_chunk_calc', v_rec.schema || '.' || v_rec.tname || ': table has non unique GIDs, was removed from response');
 					CONTINUE;
                
              END;
@@ -184,8 +186,8 @@ BEGIN
 	INTO v_ret
 	FROM
 	(SELECT lname, sum(st_npoints(the_geom)) vcount
-	FROM risco_v2_publico_dev.risco_request_geometry T1
-	INNER JOIN risco_v2_publico_dev.risco_layerview T2
+	FROM risco_request_geometry T1
+	INNER JOIN risco_layerview T2
 	ON T1.lyrid = T2.lyrid AND T1.reqid = v_reqid
 	WHERE inuse
 	GROUP BY lname) a;
@@ -201,4 +203,4 @@ BEGIN
 END;
 $body$;
 
-alter function risco_v2_publico_dev.full_chunk_calc(p_cenx double precision, p_ceny double precision, p_pixsz double precision, p_width double precision, p_height double precision, p_mapname character varying, p_vizlayers character varying, p_filter_lname character varying, p_filter_fname character varying, p_filter_value text) owner to sup_ap;
+alter function riscov2_dev.full_chunk_calc(p_cenx double precision, p_ceny double precision, p_pixsz double precision, p_width double precision, p_height double precision, p_mapname character varying, p_vizlayers character varying, p_filter_lname character varying, p_filter_fname character varying, p_filter_value text) owner to sup_ap;

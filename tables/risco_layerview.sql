@@ -1,8 +1,8 @@
--- Table: risco_v2_publico_dev.risco_layerview
+-- Table: riscov2_dev.risco_layerview
 
--- DROP TABLE risco_v2_publico_dev.risco_layerview;
+-- DROP TABLE riscov2_dev.risco_layerview;
 
-CREATE TABLE risco_v2_publico_dev.risco_layerview
+CREATE TABLE riscov2_dev.risco_layerview
 (
     lname character varying(64) COLLATE pg_catalog."default" NOT NULL,
     tname character varying(64) COLLATE pg_catalog."default" NOT NULL,
@@ -29,17 +29,17 @@ WITH (
 )
 TABLESPACE sde_tbs_01;
 
-ALTER TABLE risco_v2_publico_dev.risco_layerview
+ALTER TABLE riscov2_dev.risco_layerview
     OWNER to sup_ap;
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_layerview.adic_fields_str
+COMMENT ON COLUMN riscov2_dev.risco_layerview.adic_fields_str
     IS 'zero ou vários campos, separados por vírgula';
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_layerview.filter_expression
+COMMENT ON COLUMN riscov2_dev.risco_layerview.filter_expression
     IS 'um ou vários campos, separados por vírgula';
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_layerview.joinobj
+COMMENT ON COLUMN riscov2_dev.risco_layerview.joinobj
     IS 'tabela (gráfica ou alfa) para fazer join';
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_layerview.join_expression
+COMMENT ON COLUMN riscov2_dev.risco_layerview.join_expression
     IS 'expressão sql, os alias das tabelas são as letras da ordem alfabética ''a'' e ''b''';

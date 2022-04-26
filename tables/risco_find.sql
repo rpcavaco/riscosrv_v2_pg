@@ -1,8 +1,8 @@
--- Table: risco_v2_publico_dev.risco_find
+-- Table: riscov2_dev.risco_find
 
--- DROP TABLE risco_v2_publico_dev.risco_find;
+-- DROP TABLE riscov2_dev.risco_find;
 
-CREATE TABLE risco_v2_publico_dev.risco_find
+CREATE TABLE riscov2_dev.risco_find
 (
     falias character varying(64) COLLATE pg_catalog."default" NOT NULL,
     alias character varying COLLATE pg_catalog."default" NOT NULL,
@@ -19,8 +19,8 @@ WITH (
 )
 TABLESPACE sde_tbs_01;
 
-ALTER TABLE risco_v2_publico_dev.risco_find
+ALTER TABLE riscov2_dev.risco_find
     OWNER to sup_ap;
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_find.filteradapt
+COMMENT ON COLUMN riscov2_dev.risco_find.filteradapt
     IS 'array JSON contendo itens de formatação para colocar os elementos do array de valores nas posições corretas face à localização dos parâmetros variáveis ';

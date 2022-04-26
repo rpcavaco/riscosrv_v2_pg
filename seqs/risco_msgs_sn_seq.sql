@@ -1,6 +1,6 @@
--- DROP SEQUENCE risco_v2_publico_dev.risco_msgs_sn_seq;
+-- DROP SEQUENCE riscov2_dev.risco_msgs_sn_seq;
 
-CREATE SEQUENCE risco_v2_publico_dev.risco_msgs_sn_seq
+CREATE SEQUENCE riscov2_dev.risco_msgs_sn_seq
 	INCREMENT BY 1
 	MINVALUE 1
 	MAXVALUE 9223372036854775807
@@ -10,5 +10,5 @@ CREATE SEQUENCE risco_v2_publico_dev.risco_msgs_sn_seq
 
 -- Permissions
 
-ALTER SEQUENCE risco_v2_publico_dev.risco_msgs_sn_seq OWNER TO sup_ap;
-GRANT ALL ON SEQUENCE risco_v2_publico_dev.risco_msgs_sn_seq TO sup_ap;
+ALTER SEQUENCE riscov2_dev.risco_msgs_sn_seq OWNER TO sup_ap;
+GRANT ALL ON SEQUENCE riscov2_dev.risco_msgs_sn_seq TO sup_ap;

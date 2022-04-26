@@ -1,8 +1,8 @@
--- Table: risco_v2_publico_dev.risco_request
+-- Table: riscov2_dev.risco_request
 
--- DROP TABLE risco_v2_publico_dev.risco_request;
+-- DROP TABLE riscov2_dev.risco_request;
 
-CREATE TABLE risco_v2_publico_dev.risco_request
+CREATE TABLE riscov2_dev.risco_request
 (
     reqid uuid NOT NULL DEFAULT uuid_generate_v1(),
     cenx numeric NOT NULL,
@@ -21,5 +21,5 @@ WITH (
 )
 TABLESPACE sde_tbs_01;
 
-ALTER TABLE risco_v2_publico_dev.risco_request
+ALTER TABLE riscov2_dev.risco_request
     OWNER to sup_ap;

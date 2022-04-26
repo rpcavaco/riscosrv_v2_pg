@@ -1,8 +1,8 @@
--- Table: risco_v2_publico_dev.risco_map
+-- Table: riscov2_dev.risco_map
 
--- DROP TABLE risco_v2_publico_dev.risco_map;
+-- DROP TABLE riscov2_dev.risco_map;
 
-CREATE TABLE risco_v2_publico_dev.risco_map
+CREATE TABLE riscov2_dev.risco_map
 (
     mapid character varying(64) COLLATE pg_catalog."default" NOT NULL,
     "desc" character varying COLLATE pg_catalog."default",
@@ -15,5 +15,5 @@ WITH (
 )
 TABLESPACE sde_tbs_01;
 
-ALTER TABLE risco_v2_publico_dev.risco_map
+ALTER TABLE riscov2_dev.risco_map
     OWNER to sup_ap;

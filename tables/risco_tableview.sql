@@ -1,8 +1,8 @@
--- Table: risco_v2_publico_dev.risco_tableview
+-- Table: riscov2_dev.risco_tableview
 
--- DROP TABLE risco_v2_publico_dev.risco_tableview;
+-- DROP TABLE riscov2_dev.risco_tableview;
 
-CREATE TABLE risco_v2_publico_dev.risco_tableview
+CREATE TABLE riscov2_dev.risco_tableview
 (
     alias character varying(64) COLLATE pg_catalog."default" NOT NULL,
     tname character varying(64) COLLATE pg_catalog."default" NOT NULL,
@@ -24,20 +24,20 @@ WITH (
 )
 TABLESPACE sde_tbs_01;
 
-ALTER TABLE risco_v2_publico_dev.risco_tableview
+ALTER TABLE riscov2_dev.risco_tableview
     OWNER to sup_ap;
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_tableview.fields_str
+COMMENT ON COLUMN riscov2_dev.risco_tableview.fields_str
     IS 'zero ou vários campos, separados por vírgula';
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_tableview.orderby
+COMMENT ON COLUMN riscov2_dev.risco_tableview.orderby
     IS 'zero ou vários campos, separados por vírgula';
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_tableview.filter_expression
+COMMENT ON COLUMN riscov2_dev.risco_tableview.filter_expression
     IS 'expressão sql com placeholders';
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_tableview.joinobj
+COMMENT ON COLUMN riscov2_dev.risco_tableview.joinobj
     IS 'tabela para fazer join';
 
-COMMENT ON COLUMN risco_v2_publico_dev.risco_tableview.join_expression
+COMMENT ON COLUMN riscov2_dev.risco_tableview.join_expression
     IS 'expressão sql, os alias das tabelas são as letras da ordem alfabética ''a'' e ''b''';

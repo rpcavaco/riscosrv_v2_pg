@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION risco_v2_publico_dev.quantize2json(p_creqid character varying, p_layer_name character varying, p_chunks integer, p_vertexcnt integer, p_chunk integer DEFAULT 1)
+CREATE OR REPLACE FUNCTION riscov2_dev.quantize2json(p_creqid character varying, p_layer_name character varying, p_chunks integer, p_vertexcnt integer, p_chunk integer DEFAULT 1)
  RETURNS text
  LANGUAGE 'plpgsql'
  VOLATILE
@@ -44,6 +44,8 @@ BEGIN
 		v_t0 := clock_timestamp();
 		v_t1 := clock_timestamp();
 	end if;
+
+	perform set_config('search_path', 'riscov2_dev,public', true);
 	
 	IF p_chunk < 1 OR p_chunk > p_chunks THEN
         select json_build_object('sign',v_sign,
@@ -65,7 +67,7 @@ BEGIN
 			filter_lname, filter_fname, filter_value
     INTO v_cenx, v_ceny, v_width, v_height, v_pixsz,
 			v_filter_fname, v_filter_lname, v_filter_value
-    FROM risco_v2_publico_dev.risco_request
+    FROM risco_request
 	WHERE reqid = v_reqid;
 
 	if v_profile then
@@ -76,7 +78,7 @@ BEGIN
 
     SELECT lyrid, schema, tname, oidfname, adic_fields_str
     INTO v_lyrid, v_schema, v_tablename, v_oidfldname, v_adic_flds_str
-    FROM risco_v2_publico_dev.risco_layerview
+    FROM risco_layerview
 	WHERE lname = p_layer_name;
 
 	if v_profile then
@@ -104,7 +106,7 @@ BEGIN
  		v_sql := 'with delsel as (' ||
  			'select oidv, the_geom as snapped_shape ' ||
 			--'delete '
-			'from risco_v2_publico_dev.risco_request_geometry ' ||
+			'from risco_request_geometry ' ||
 			'WHERE NOT the_geom IS NULL ' ||
 			'AND reqid = $13 ' ||
 			'AND lyrid = $14 ' ||
@@ -115,7 +117,7 @@ BEGIN
                 '''chnk'', $6, ''nchunks'', $7, ' ||
                 '''cont'', json_object_agg(c.oidv, c.cont) ) ' ||
                 'from (select oidv, ' ||
-                'json_build_object(''typ'', risco_v2_publico_dev.util_condensed_type(geomtype), ';
+                'json_build_object(''typ'', util_condensed_type(geomtype), ';
                 
         IF v_adicflds_flag THEN
 			
@@ -123,7 +125,7 @@ BEGIN
         
         END IF;
     
-        v_sql := v_sql || '''crds'', risco_v2_publico_dev.gen_coords_elem(snapped_shape, $8, $9, $10) ) cont ' ||
+        v_sql := v_sql || '''crds'', gen_coords_elem(snapped_shape, $8, $9, $10) ) cont ' ||
                     'from (select a.*, GeometryType(snapped_shape) geomtype, '                
                     'ceil(1.0 * $11 * sum(st_npoints(snapped_shape)) over (order by st_npoints(snapped_shape) desc, oidv) / $12) chnk ' ||   
                     'from (select delsel.oidv, delsel.snapped_shape';            
@@ -135,27 +137,10 @@ BEGIN
 		v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || ' t1 inner join delsel ' ||
 				'on t1.' || v_oidfldname || ' = delsel.oidv';
 	
-		/*v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || ' t1 inner join risco_v2_publico_dev.risco_request_geometry t2 ' ||
-				'on t1.' || v_oidfldname || ' = t2.oidv ' ||                   
-				'WHERE NOT t2.the_geom IS NULL AND t2.reqid = $13 ' ||
-				'AND lyrid = $14' ||
-				''; */
-                    
         IF v_filter_flag THEN
 
 			v_sql := v_sql || ' and t1.' || p_filter_fname || ' = $15) a) b where b.chnk = $16) c';
 
-			/*INSERT INTO risco_v2_publico_dev.risco_msgs (severity, context, msg, params)
-			VALUES
-			(0, 'risco_v2_publico_dev.quantize2json A', v_sql, json_build_array(v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
-					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, v_filter_value, p_chunk)); */
-		
-			/*RAISE EXCEPTION 'a %, %, %, %, %, %, %, %, %, %, %, %, %, %, %, %',
-					v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
-					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, v_filter_value, p_chunk;*/
-			
 			EXECUTE v_sql INTO STRICT v_retobj 
 			USING v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
 					v_cenx, v_ceny, v_pixsz,                     
@@ -165,20 +150,6 @@ BEGIN
         ELSE
         
 			v_sql := v_sql || ') a) b where b.chnk = $15) c';
-
-			/* INSERT INTO risco_v2_publico_dev.risco_msgs (severity, context, msg, params)
-			VALUES
-			(0, 'risco_v2_publico_dev.quantize2json B', v_sql, json_build_array(v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
-					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, p_chunk)); */
-		
-			--RAISE EXCEPTION  'v_sql: %', v_sql;
-
-			/*
-			RAISE EXCEPTION 'aB %, %, %, %, %, %, %, %, %, %, %, %, %, %, %',
-					v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
-					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, p_chunk;*/
 
 			EXECUTE v_sql INTO STRICT v_retobj 
 			USING v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
@@ -198,7 +169,7 @@ BEGIN
 		with delsel as (
 			--delete 
 			select oidv, the_geom as snapped_shape 
-			from risco_v2_publico_dev.risco_request_geometry 
+			from risco_request_geometry 
 			WHERE NOT the_geom IS NULL
 			AND reqid = v_reqid
 			AND lyrid = v_lyrid
@@ -210,8 +181,8 @@ BEGIN
 			'cont', json_object_agg(c.oidv, c.cont) ) 
 			from (
 				select oidv, 
-				json_build_object('typ', risco_v2_publico_dev.util_condensed_type(geomtype), 
-				'crds', risco_v2_publico_dev.gen_coords_elem(snapped_shape, v_cenx, v_ceny, v_pixsz) ) cont 
+				json_build_object('typ', util_condensed_type(geomtype), 
+				'crds', gen_coords_elem(snapped_shape, v_cenx, v_ceny, v_pixsz) ) cont 
 				from (
 					select delsel.*, GeometryType(snapped_shape) geomtype,              
 					ceil(1.0 * p_chunks * sum(st_npoints(snapped_shape)) over (order by st_npoints(snapped_shape) desc, oidv) / p_vertexcnt) chnk
@@ -235,4 +206,4 @@ END;
 
 $body$;
 
-ALTER FUNCTION risco_v2_publico_dev.quantize2json(p_creqid character varying, p_layer_name character varying, p_chunks integer, p_vertexcnt integer, p_chunk integer) OWNER to sup_ap;
+ALTER FUNCTION riscov2_dev.quantize2json(p_creqid character varying, p_layer_name character varying, p_chunks integer, p_vertexcnt integer, p_chunk integer) OWNER to sup_ap;
