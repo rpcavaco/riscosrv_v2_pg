@@ -76,7 +76,7 @@ BEGIN
 		v_t1 := v_t2;
 	end if;
 
-    SELECT lyrid, schema, tname, oidfname, adic_fields_str
+    SELECT lyrid, schema, dbobjname, oidfname, adic_fields_str
     INTO v_lyrid, v_schema, v_tablename, v_oidfldname, v_adic_flds_str
     FROM risco_layerview
 	WHERE lname = p_layer_name;

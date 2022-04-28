@@ -5,7 +5,7 @@
 CREATE TABLE riscov2_dev.risco_tableview
 (
     alias character varying(64) COLLATE pg_catalog."default" NOT NULL,
-    tname character varying(64) COLLATE pg_catalog."default" NOT NULL,
+    dbobjname character varying(64) COLLATE pg_catalog."default" NOT NULL,
     fields_str text COLLATE pg_catalog."default",
     schema character varying(64) COLLATE pg_catalog."default",
     tblid uuid NOT NULL DEFAULT uuid_generate_v1(),

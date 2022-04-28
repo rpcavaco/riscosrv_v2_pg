@@ -74,7 +74,7 @@ BEGIN
 	end if;
 	
 	FOR v_rec IN 
-		SELECT lname, schema, tname, geomfname, oidfname, lyrid, srid
+		SELECT lname, schema, dbobjname, geomfname, oidfname, lyrid, srid
 		FROM risco_layerview 
 		WHERE inuse
 		AND p_mapname = ANY(maps) 
@@ -84,7 +84,7 @@ BEGIN
 		END IF;
 
 		if v_profile then
-		    raise notice '..... tname: %   srid tema:% srid mapa:%', v_rec.tname, v_rec.srid, v_srid;
+		    raise notice '..... dbobjname: %   srid tema:% srid mapa:%', v_rec.dbobjname, v_rec.srid, v_srid;
 		end if;
             
             BEGIN
@@ -101,7 +101,7 @@ BEGIN
 				
 					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
-					'FROM ' || v_rec.schema || '.' || v_rec.tname || ' ' || 
+					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || ' ' || 
 					'where ST_Intersects(' || v_rec.geomfname || ', $7)' ||
 					' AND ' || p_filter_fname || ' = $8';
 					
@@ -117,7 +117,7 @@ BEGIN
 				
 					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
-					'FROM ' || v_rec.schema || '.' || v_rec.tname || ' ' || 
+					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || ' ' || 
 					'where ST_Intersects(' || v_rec.geomfname || ', $7) ';
 
 					if v_profile then
@@ -137,14 +137,14 @@ BEGIN
                 
 					INSERT INTO risco_msgs (severity, context, msg)
 					VALUES
-					(2, 'full_chunk_calc', v_rec.schema || '.' || v_rec.tname || ': table does not exist');
+					(2, 'full_chunk_calc', v_rec.schema || '.' || v_rec.dbobjname || ': table does not exist');
 					CONTINUE;
                
 				WHEN SQLSTATE '23505' THEN
                 
 					INSERT INTO risco_msgs (severity, context, msg)
 					VALUES
-					(2, 'full_chunk_calc', v_rec.schema || '.' || v_rec.tname || ': table has non unique GIDs, was removed from response');
+					(2, 'full_chunk_calc', v_rec.schema || '.' || v_rec.dbobjname || ': table has non unique GIDs, was removed from response');
 					CONTINUE;
                
              END;

@@ -58,7 +58,7 @@ begin
 		
 		if v_row.target = 'layer' then 	
 
-			select schema, tname, oidfname, geomfname, adic_fields_str, 
+			select schema, dbobjname, oidfname, geomfname, adic_fields_str, 
 					outer_join, joinschema, joinobj, join_expression, 
 					filter_expression, orderby
 				into v_row2
@@ -74,7 +74,7 @@ begin
 		
 		elsif v_row.target = 'table' then 
 	
-			select schema, tname, fields_str, 
+			select schema, dbobjname, fields_str, 
 					outer_join, joinschema, joinobj, join_expression, 
 					filter_expression, orderby
 				into v_row2
@@ -88,7 +88,7 @@ begin
 
 		end if;
 	
-		v_from := format('%s.%s a', v_row2.schema, v_row2.tname);
+		v_from := format('%s.%s a', v_row2.schema, v_row2.dbobjname);
 		if not v_row2.joinschema is null and length(v_row2.joinschema) > 0 and 
 				not v_row2.joinobj is null and length(v_row2.joinobj) > 0 and
 				not v_row2.join_expression is null and length(v_row2.join_expression) > 0 then

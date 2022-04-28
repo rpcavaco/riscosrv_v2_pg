@@ -5,7 +5,7 @@
 CREATE TABLE riscov2_dev.risco_layerview
 (
     lname character varying(64) COLLATE pg_catalog."default" NOT NULL,
-    tname character varying(64) COLLATE pg_catalog."default" NOT NULL,
+    dbobjname character varying(64) COLLATE pg_catalog."default" NOT NULL,
     oidfname character varying(64) COLLATE pg_catalog."default" NOT NULL DEFAULT 'objectid'::character varying,
     geomfname character varying(64) COLLATE pg_catalog."default" NOT NULL DEFAULT 'shape'::character varying,
     adic_fields_str text COLLATE pg_catalog."default",
