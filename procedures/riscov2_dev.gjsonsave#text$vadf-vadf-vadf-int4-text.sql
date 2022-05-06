@@ -40,8 +40,7 @@ BEGIN
 	and inuse;
 
 	if length(v_user_validation_ops) > 0 and v_user_validation_ops != 'WRITE' and v_user_validation_ops != 'BOTH' then
-			return 'READONLY_LAYER';
-		end if;
+		return 'READONLY_LAYER';
 	end if;
 
 	v_geojson := p_geojson::json;
