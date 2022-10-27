@@ -102,7 +102,7 @@ BEGIN
 					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
 					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || ' ' || 
-					'where ST_Intersects(' || v_rec.geomfname || ', $7)' ||
+					'where ' || v_rec.geomfname || ' && $7' ||
 					' AND ' || p_filter_fname || ' = $8';
 					
 					execute v_sql
@@ -118,7 +118,7 @@ BEGIN
 					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
 					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || ' ' || 
-					'where ST_Intersects(' || v_rec.geomfname || ', $7) ';
+					'where ' || v_rec.geomfname || ' && $7';
 
 					if v_profile then
 						raise notice 'B v_sql:%, %, %, %, %, %, %, v_env:%', v_sql, v_reqid, v_rec.lyrid, p_cenx, p_ceny, p_pixsz, p_pixsz, ST_AsText(v_actenv);
