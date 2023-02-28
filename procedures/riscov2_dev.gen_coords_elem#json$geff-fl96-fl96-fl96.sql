@@ -82,4 +82,4 @@ END;
 $body$;
 
 
-alter function riscov2_dev.gen_coords_elem(p_geom geometry, p_cenx double precision, p_ceny double precision, p_pixsz double precision) owner to sup_ap;
+alter function riscov2_dev.gen_coords_elem(geometry, double precision, double precision, double precision) owner to sup_ap;

@@ -9,7 +9,6 @@ declare
 	v_qry text;
 	v_flds text;
 	v_from text;
-	v_ordby text;
 	v_arr1 text[];
 	v_arr2 text[];
 	v_fmt_interm text;
@@ -41,7 +40,7 @@ begin
 
 		if v_row.target = 'function' then 	
 
-			v_qry := format('select %I.%I($1, $2)', v_row.fschema, v_row.alias);
+			v_qry := format('select %I.%I(%L, $1, $2)', v_row.fschema, v_row.alias, v_row.alias);
 			--v_qry := format(v_sql_outer_template, v_qry);
 									
 			--raise notice '%', v_qry;
@@ -114,7 +113,7 @@ begin
 			v_qry := format(v_qry, json_array_elements_text(p_filter_values));
 		end if;
 		
-	raise notice 'v_qry:%', v_qry;
+	-- raise notice 'v_qry:%', v_qry;
 	
 		if not v_row2.orderby is null and length(v_row2.orderby) > 0 then 
 			v_qry := v_qry || ' order by ' ||  v_row2.orderby;
@@ -137,4 +136,6 @@ begin
 END;
 $body$;
 
-alter function riscov2_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying) owner to sup_ap;
+alter function riscov2_dev.do_get(character varying, json, numeric, character varying) owner to sup_ap;
+
+GRANT EXECUTE ON FUNCTION riscov2_dev.do_get(character varying, json, numeric, character varying) TO PUBLIC;

@@ -102,4 +102,4 @@ END;
 
 $BODY$;
 
-ALTER FUNCTION riscov2_dev.gjsonsave(p_layer_name character varying, p_gisid character varying, p_userid character varying, p_epsg integer, p_geojson text) OWNER to sup_ap;
+ALTER FUNCTION riscov2_dev.gjsonsave(character varying, character varying, character varying, integer, text) OWNER to sup_ap;

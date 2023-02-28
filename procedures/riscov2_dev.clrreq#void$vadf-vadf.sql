@@ -30,4 +30,4 @@ AS $BODY$
 $BODY$;
 
 
-alter function riscov2_dev.clrreq(p_creqid character varying, p_layer_name character varying) owner to sup_ap;
+alter function riscov2_dev.clrreq(character varying, character varying) owner to sup_ap;

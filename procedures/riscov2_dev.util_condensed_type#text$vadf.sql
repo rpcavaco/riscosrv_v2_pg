@@ -28,4 +28,4 @@ END;
 
 $body$;
 
-alter function riscov2_dev.util_condensed_type(p_geom_type_str character varying) owner to sup_ap;
+alter function riscov2_dev.util_condensed_type(character varying) owner to sup_ap;

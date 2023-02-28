@@ -203,4 +203,6 @@ BEGIN
 END;
 $body$;
 
-alter function riscov2_dev.full_chunk_calc(p_cenx double precision, p_ceny double precision, p_pixsz double precision, p_width double precision, p_height double precision, p_mapname character varying, p_vizlayers character varying, p_filter_lname character varying, p_filter_fname character varying, p_filter_value text) owner to sup_ap;
+alter function riscov2_dev.full_chunk_calc(double precision, double precision, double precision, double precision, double precision, character varying, character varying, character varying, character varying, text) owner to sup_ap;
+
+GRANT EXECUTE ON FUNCTION riscov2_dev.full_chunk_calc(double precision, double precision, double precision, double precision, double precision, character varying, character varying, character varying, character varying, text) TO PUBLIC;

@@ -206,4 +206,6 @@ END;
 
 $body$;
 
-ALTER FUNCTION riscov2_dev.quantize2json(p_creqid character varying, p_layer_name character varying, p_chunks integer, p_vertexcnt integer, p_chunk integer) OWNER to sup_ap;
+ALTER FUNCTION riscov2_dev.quantize2json(character varying, character varying, integer, integer, integer) OWNER to sup_ap;
+
+GRANT EXECUTE ON FUNCTION riscov2_dev.quantize2json(character varying, character varying, integer, integer, integer) TO PUBLIC;
