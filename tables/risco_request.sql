@@ -14,12 +14,8 @@ CREATE TABLE riscov2_dev.risco_request
     filter_lname character varying(64) COLLATE pg_catalog."default",
     pixsz numeric NOT NULL,
     CONSTRAINT pk_request_ PRIMARY KEY (reqid)
-        USING INDEX TABLESPACE sde_tbs_01
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE sde_tbs_01;
+
+);
 
 ALTER TABLE riscov2_dev.risco_request
     OWNER to sup_ap;

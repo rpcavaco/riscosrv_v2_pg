@@ -17,12 +17,8 @@ CREATE TABLE riscov2_dev.risco_tableview
     joinschema character varying(64) COLLATE pg_catalog."default",
     outer_join boolean,
     CONSTRAINT risco_table_pk PRIMARY KEY (alias)
-        USING INDEX TABLESPACE sde_tbs_01
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE sde_tbs_01;
+
+);
 
 ALTER TABLE riscov2_dev.risco_tableview
     OWNER to sup_ap;

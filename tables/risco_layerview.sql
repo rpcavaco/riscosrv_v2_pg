@@ -22,12 +22,8 @@ CREATE TABLE riscov2_dev.risco_layerview
     outer_join boolean,
     orderby text COLLATE pg_catalog."default",
     CONSTRAINT risco_layer_pk PRIMARY KEY (lname)
-        USING INDEX TABLESPACE sde_tbs_01
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE sde_tbs_01;
+
+);
 
 ALTER TABLE riscov2_dev.risco_layerview
     OWNER to sup_ap;

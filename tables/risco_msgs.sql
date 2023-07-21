@@ -11,12 +11,8 @@ CREATE TABLE riscov2_dev.risco_msgs
     ts timestamp with time zone DEFAULT clock_timestamp(),
     params json,
     CONSTRAINT risco_msgs_pkey PRIMARY KEY (sn)
-        USING INDEX TABLESPACE sde_tbs_01
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE sde_tbs_01;
+
+);
 
 ALTER TABLE riscov2_dev.risco_msgs
     OWNER to sup_ap;
