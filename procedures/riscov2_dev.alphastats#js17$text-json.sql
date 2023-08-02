@@ -11,6 +11,7 @@ DECLARE
 	v_col text;
 	v_sql text;
 	v_int integer;
+	v_total integer;
 	v_counts json;
 	v_mode text;
 
@@ -24,6 +25,7 @@ BEGIN
 	select dataobjschema, dataobjname, regexp_split_to_array(allowedcols, '[\s\,]+') cols into v_sch, v_oname, v_cols
 	from risco_stats
 	where key = p_key;
+	v_total := 0;
 
 	if FOUND then
 
@@ -51,17 +53,26 @@ BEGIN
 				) a', v_col, v_sch, v_oname);
 
 				execute v_sql into v_int;
-				v_ret := jsonb_set(v_ret, array[v_col, 'totalcount'], to_jsonb(v_int), true); 
+				v_ret := jsonb_set(v_ret, array[v_col, 'classescount'], to_jsonb(v_int), true); 
 
 				v_sql := format('select json_object_agg(valor, cnt) from (
 				select %s valor, count(*) cnt
 				from %s.%s
+				where not %1$s is null
 				group by %1$s
 				) a', v_col, v_sch, v_oname);
 
 				execute v_sql into v_counts;
 
-				v_ret := jsonb_set(v_ret, array[v_col, 'counts'], to_jsonb(v_counts), true); 
+				v_ret := jsonb_set(v_ret, array[v_col, 'classcounts'], to_jsonb(v_counts), true); 
+
+				v_sql := format('select count(*) cnt
+				from %s.%s
+				where not %s is null', v_sch, v_oname, v_col);
+
+				execute v_sql into v_total;
+
+				v_ret := jsonb_set(v_ret, array[v_col, 'sumofclasscounts'], to_jsonb(v_total), true); 
 
 
 			end if;
