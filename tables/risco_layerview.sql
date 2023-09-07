@@ -32,7 +32,7 @@ COMMENT ON COLUMN riscov2_dev.risco_layerview.adic_fields_str
     IS 'zero ou vários campos, separados por vírgula';
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.filter_expression
-    IS 'um ou vários campos, separados por vírgula';
+    IS 'clausula where SQL';
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.joinobj
     IS 'tabela (gráfica ou alfa) para fazer join';

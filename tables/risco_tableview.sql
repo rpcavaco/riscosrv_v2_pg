@@ -30,7 +30,7 @@ COMMENT ON COLUMN riscov2_dev.risco_tableview.orderby
     IS 'zero ou vários campos, separados por vírgula';
 
 COMMENT ON COLUMN riscov2_dev.risco_tableview.filter_expression
-    IS 'expressão sql com placeholders';
+    IS 'clausula where SQL com placeholders';
 
 COMMENT ON COLUMN riscov2_dev.risco_tableview.joinobj
     IS 'tabela para fazer join';
