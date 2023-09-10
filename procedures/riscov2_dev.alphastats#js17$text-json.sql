@@ -14,6 +14,7 @@ DECLARE
 	v_sql text;
 	v_sql_proto text;
 	v_sql_proto_templ text;
+	v_sql_templ text;
 	v_sql1 text;
 	v_sql2 text;
 	v_sql3 text;
@@ -138,9 +139,18 @@ BEGIN
 
 				v_ret := jsonb_set(v_ret, array[v_col, 'classes'], to_jsonb(v_counts), true); 
 
-				v_sql := format('select count(*) cnt
+				if v_filter_expression is null then
+					v_sql_templ := 'select count(*) cnt from %s.%s where not %s is null';
+					v_sql := format(v_sql_templ, v_sch, v_oname, v_col);
+				else 
+					v_sql_templ := 'select count(*) cnt from %s.%s a where not %s is null and %s';
+					v_sql := format(v_sql_templ, v_sch, v_oname, v_col, v_filter_expression);
+				end if;
+
+
+				/*v_sql := format('select count(*) cnt
 				from %s.%s
-				where not %s is null', v_sch, v_oname, v_col);
+				where not %s is null', v_sch, v_oname, v_col);*/
 
 				execute v_sql into v_total;
 
