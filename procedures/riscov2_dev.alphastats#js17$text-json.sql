@@ -18,11 +18,13 @@ DECLARE
 	v_sql1 text;
 	v_sql2 text;
 	v_sql3 text;
+	v_sql4 text;
 	v_int integer;
 	v_total integer;
 	v_counts json;
 	v_mode text;
 	v_from text;
+	v_from_geom text;
 	v_joinschema text; 
 	v_joinobj text; 
 	v_join_expression text;
@@ -30,6 +32,7 @@ DECLARE
 	v_geomfname text;
 	v_outer_join boolean;
 	v_outsrid int;
+	v_clustersize numeric;
 
 BEGIN
 
@@ -50,13 +53,22 @@ BEGIN
 	v_total := 0;
 
 	v_outsrid := p_options->>'outsrid';
+	v_clustersize := p_options->>'clustersize';	
 	-- raise notice 'v_geomfname:% p_key:% outsrid:%', v_geomfname, p_key, v_outsrid; 
+
+	if v_clustersize is null then
+		v_clustersize := 150;
+	end if;
 
 	if FOUND then
 
 		for i in 1..array_length(v_cols, 1)
 		loop
 			v_col := v_cols[i];
+
+			if not p_options->>'col' is null and v_col != p_options->>'col' then
+				continue;
+			end if;
 
 			v_label := null;
 			if not v_labelcols is null and array_length(v_labelcols, 1) >= i then 
@@ -87,6 +99,7 @@ BEGIN
 				v_ret := jsonb_set(v_ret, array[v_col, 'classescount'], to_jsonb(v_int), true); 
 
 				v_from := format('%s.%s a', v_sch, v_oname);
+				v_from_geom := v_from;
 				if not v_joinschema is null and length(v_joinschema) > 0 and 
 						not v_joinobj is null and length(v_joinobj) > 0 and
 						not v_join_expression is null and length(v_join_expression) > 0 then
@@ -109,7 +122,7 @@ BEGIN
 				end if;
 
 				if not v_geomfname is null then
-					v_sql1 := v_sql1 || ', ''xmin'', ST_XMin(env), ''ymin'', ST_YMin(env), ''xmax'', ST_XMax(env), ''ymax'', ST_yMax(env)';
+					v_sql1 := v_sql1 || ', ''xmin'', ST_XMin(env), ''ymin'', ST_YMin(env), ''xmax'', ST_XMax(env), ''ymax'', ST_yMax(env), ''centroids'', g.centroids';
 					if not v_outsrid is null then
 						v_sql2 := v_sql2 || format(' st_extent(st_transform(%s, %s)) env,', v_geomfname, v_outsrid);
 					else
@@ -119,18 +132,24 @@ BEGIN
 				end if;
 
 				if v_filter_expression is null then
-					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s group by %s) c';
+					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s group by %s) c cross join lateral (%s) g';
+					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
+						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
+						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val', v_geomfname, v_clustersize, v_from_geom, v_col)));
 				else 
-					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where %%s group by %s) c';
+					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where %%s group by %s) c cross join lateral (%s) g';
+					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
+						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
+						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and %%s', v_geomfname, v_clustersize, v_from_geom, v_col)));
 				end if;
-				v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_sql3);
+				v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_sql3, v_sql4);
 
 				-- raise notice 'v_sql_proto >>%<<', v_sql_proto;
 
 				if v_filter_expression is null then
 					v_sql := format(v_sql_proto, v_col, v_from, v_col);
 				else
-					v_sql := format(v_sql_proto, v_col, v_from, v_filter_expression);
+					v_sql := format(v_sql_proto, v_col, v_from, v_filter_expression, v_filter_expression);
 				end if;
 
 				-- raise notice 'v_sql >>%<<', v_sql;
@@ -140,17 +159,13 @@ BEGIN
 				v_ret := jsonb_set(v_ret, array[v_col, 'classes'], to_jsonb(v_counts), true); 
 
 				if v_filter_expression is null then
-					v_sql_templ := 'select count(*) cnt from %s.%s where not %s is null';
-					v_sql := format(v_sql_templ, v_sch, v_oname, v_col);
+					v_sql_templ := 'select count(*) cnt from %s where not %s is null';
+					v_sql := format(v_sql_templ, v_from, v_col);
 				else 
-					v_sql_templ := 'select count(*) cnt from %s.%s a where not %s is null and %s';
-					v_sql := format(v_sql_templ, v_sch, v_oname, v_col, v_filter_expression);
+					v_sql_templ := 'select count(*) cnt from %s where not %s is null and %s';
+					v_sql := format(v_sql_templ, v_from, v_col, v_filter_expression);
 				end if;
 
-
-				/*v_sql := format('select count(*) cnt
-				from %s.%s
-				where not %s is null', v_sch, v_oname, v_col);*/
 
 				execute v_sql into v_total;
 
