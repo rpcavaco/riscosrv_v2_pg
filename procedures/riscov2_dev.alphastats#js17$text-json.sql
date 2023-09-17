@@ -20,11 +20,11 @@ DECLARE
 	v_sql3 text;
 	v_sql4 text;
 	v_int integer;
-	v_total integer;
+	v_int2 integer;
 	v_counts json;
-	v_mode text;
 	v_from text;
 	v_from_geom text;
+	v_from_constrained text;
 	v_joinschema text; 
 	v_joinobj text; 
 	v_join_expression text;
@@ -33,13 +33,13 @@ DECLARE
 	v_outer_join boolean;
 	v_outsrid int;
 	v_clustersize numeric;
+	v_isdiscrete boolean;
 
 BEGIN
 
 	set search_path to riscov2_dev, public;
 
 	v_ret := '{}'::jsonb;
-	v_mode := 'NONE';
 
 	select dataobjschema, dataobjname,
 		regexp_split_to_array(allowedcols, '[\s\,]+') cols, 
@@ -50,7 +50,6 @@ BEGIN
 		 v_filter_expression
 	from risco_stats
 	where key = p_key;
-	v_total := 0;
 
 	v_outsrid := p_options->>'outsrid';
 	v_clustersize := p_options->>'clustersize';	
@@ -77,39 +76,47 @@ BEGIN
 
 			v_ret := jsonb_set(v_ret, array[v_col], '{}'::jsonb, true); 
 
-			v_sql := format('select sum(%s) from %s.%s', v_col, v_sch, v_oname);
-			-- raise notice 'v_sql:%', v_sql;
-
-			begin
-				execute v_sql into v_int;
-				v_mode := 'NUMERIC';
-			exception
-				WHEN SQLSTATE '42883' THEN --- function does not exist - not applicable to data type (non-numeric)
-					v_mode := 'NON-NUMERIC';
-			end;
-
-			if v_mode = 'NON-NUMERIC' then
-
-				v_sql := format('select count(*) from (
-					select distinct %s valor
-					from %s.%s
-				) a', v_col, v_sch, v_oname);
-
-				execute v_sql into v_int;
-				v_ret := jsonb_set(v_ret, array[v_col, 'classescount'], to_jsonb(v_int), true); 
+			if not v_joinschema is null and length(v_joinschema) > 0 and 
+					not v_joinobj is null and length(v_joinobj) > 0 and
+					not v_join_expression is null and length(v_join_expression) > 0 then
 
 				v_from := format('%s.%s a', v_sch, v_oname);
 				v_from_geom := v_from;
-				if not v_joinschema is null and length(v_joinschema) > 0 and 
-						not v_joinobj is null and length(v_joinobj) > 0 and
-						not v_join_expression is null and length(v_join_expression) > 0 then
-					if not v_outer_join is null and v_outer_join then
-						v_from := v_from || ' left outer join ';
-					else
-						v_from := v_from || ' inner join ';
-					end if;
-					v_from := format('%s %s.%s b on %s', v_from, v_joinschema, v_joinobj, v_join_expression);
+				v_from_constrained := v_from;
+
+				if not v_outer_join is null and v_outer_join then
+					v_from := v_from || ' left outer join ';
+				else
+					v_from := v_from || ' inner join ';
 				end if;
+				v_from := format('%s %s.%s b on %s', v_from, v_joinschema, v_joinobj, v_join_expression);
+				if v_outer_join is null or not v_outer_join then
+					v_from_constrained := format('%s %s.%s b on %s', v_from, v_joinschema, v_joinobj, v_join_expression);
+				end if;
+
+			end if;
+
+			if v_filter_expression is null then
+				v_sql := format('select count(*) from %s where not %s is null', v_from_constrained, v_col);
+			else
+				v_sql := format('select count(*) from %s where not %s is null and %s', v_from_constrained, v_col, v_filter_expression);
+			end if;
+
+			execute v_sql into v_int; -- records count
+
+			if v_filter_expression is null then
+				v_sql := format('select count(*) from (select distinct %s valor from %s where not %s is null) t1', v_col, v_from_constrained, v_col);
+			else
+				v_sql := format('select count(*) from (select distinct %s valor from %s where not %s is null and %s) t1', v_col, v_from_constrained, v_col, v_filter_expression);
+			end if;
+
+			execute v_sql into v_int2; -- classes count
+
+			-- discrete data (only, for now)
+			if v_int2 < v_int / 20.0 and v_int2 < 500 then
+
+				v_ret := jsonb_set(v_ret, array[v_col, 'sumofclasscounts'], to_jsonb(v_int), true); 
+				v_ret := jsonb_set(v_ret, array[v_col, 'classescount'], to_jsonb(v_int2), true); 
 
 				v_sql1 := 'select json_object_agg(val, json_build_object(''cnt'', cnt';
 				v_sql2 := 'select %s val,';
@@ -132,17 +139,17 @@ BEGIN
 				end if;
 
 				if v_filter_expression is null then
-					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s group by %s) c cross join lateral (%s) g';
+					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null group by %s) c cross join lateral (%s) g';
 					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
 						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
-						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val', v_geomfname, v_clustersize, v_from_geom, v_col)));
+						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null', v_geomfname, v_clustersize, v_from_geom, v_col, v_col)));
 				else 
-					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where %%s group by %s) c cross join lateral (%s) g';
+					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null and %%s group by %s) c cross join lateral (%s) g';
 					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
 						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
-						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and %%s', v_geomfname, v_clustersize, v_from_geom, v_col)));
+						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null and %%s', v_geomfname, v_clustersize, v_from_geom, v_col, v_col)));
 				end if;
-				v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_sql3, v_sql4);
+				v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_col, v_sql3, v_sql4);
 
 				-- raise notice 'v_sql_proto >>%<<', v_sql_proto;
 
@@ -157,20 +164,6 @@ BEGIN
 				execute v_sql into v_counts;
 
 				v_ret := jsonb_set(v_ret, array[v_col, 'classes'], to_jsonb(v_counts), true); 
-
-				if v_filter_expression is null then
-					v_sql_templ := 'select count(*) cnt from %s where not %s is null';
-					v_sql := format(v_sql_templ, v_from, v_col);
-				else 
-					v_sql_templ := 'select count(*) cnt from %s where not %s is null and %s';
-					v_sql := format(v_sql_templ, v_from, v_col, v_filter_expression);
-				end if;
-
-
-				execute v_sql into v_total;
-
-				v_ret := jsonb_set(v_ret, array[v_col, 'sumofclasscounts'], to_jsonb(v_total), true); 
-
 
 			end if;
 
