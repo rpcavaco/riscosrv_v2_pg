@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION riscov2_dev.do_get(p_alias_name character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying)
+CREATE OR REPLACE FUNCTION riscov2_dev.do_get(p_alias_name character varying, p_keyword character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying)
  RETURNS jsonb
  LANGUAGE 'plpgsql'
  VOLATILE
@@ -40,7 +40,7 @@ begin
 
 		if v_row.target = 'function' then 	
 
-			v_qry := format('select %I.%I(%L, $1, $2)', v_row.fschema, v_row.alias, v_row.alias);
+			v_qry := format('select %I.%I(%L, $1, $2)', v_row.fschema, v_row.alias, p_keyword);
 			--v_qry := format(v_sql_outer_template, v_qry);
 									
 			--raise notice '%', v_qry;
@@ -136,6 +136,6 @@ begin
 END;
 $body$;
 
-alter function riscov2_dev.do_get(character varying, json, numeric, character varying) owner to sup_ap;
+alter function riscov2_dev.do_get(character varying, character varying, json, numeric, character varying) owner to sup_ap;
 
-GRANT EXECUTE ON FUNCTION riscov2_dev.do_get(character varying, json, numeric, character varying) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION riscov2_dev.do_get(character varying, character varying, json, numeric, character varying) TO PUBLIC;

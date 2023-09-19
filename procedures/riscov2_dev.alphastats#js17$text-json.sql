@@ -23,7 +23,6 @@ DECLARE
 	v_int2 integer;
 	v_counts json;
 	v_from text;
-	v_from_geom text;
 	v_from_constrained text;
 	v_joinschema text; 
 	v_joinobj text; 
@@ -76,12 +75,14 @@ BEGIN
 
 			v_ret := jsonb_set(v_ret, array[v_col], '{}'::jsonb, true); 
 
+			v_from := format('%s.%s', v_sch, v_oname);
+			v_from_constrained := v_from;
+
 			if not v_joinschema is null and length(v_joinschema) > 0 and 
 					not v_joinobj is null and length(v_joinobj) > 0 and
 					not v_join_expression is null and length(v_join_expression) > 0 then
 
 				v_from := format('%s.%s a', v_sch, v_oname);
-				v_from_geom := v_from;
 				v_from_constrained := v_from;
 
 				if not v_outer_join is null and v_outer_join then
@@ -142,12 +143,12 @@ BEGIN
 					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null group by %s) c cross join lateral (%s) g';
 					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
 						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
-						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null', v_geomfname, v_clustersize, v_from_geom, v_col, v_col)));
+						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null', v_geomfname, v_clustersize, v_from_constrained, v_col, v_col)));
 				else 
 					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null and %%s group by %s) c cross join lateral (%s) g';
 					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
 						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
-						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null and %%s', v_geomfname, v_clustersize, v_from_geom, v_col, v_col)));
+						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null and %%s', v_geomfname, v_clustersize, v_from_constrained, v_col, v_col)));
 				end if;
 				v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_col, v_sql3, v_sql4);
 
