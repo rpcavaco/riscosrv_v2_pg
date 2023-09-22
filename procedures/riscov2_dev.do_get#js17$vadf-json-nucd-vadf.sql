@@ -1,8 +1,14 @@
-CREATE OR REPLACE FUNCTION riscov2_dev.do_get(p_alias_name character varying, p_keyword character varying, p_filter_values json, p_pointbuffer_m numeric, p_lang character varying)
- RETURNS jsonb
- LANGUAGE 'plpgsql'
- VOLATILE
-AS $body$
+CREATE OR REPLACE FUNCTION riscov2_dev.do_get(
+	p_alias_name character varying,
+	p_keyword character varying,
+	p_filter_values json,
+	p_pointbuffer_m numeric,
+	p_lang character varying)
+    RETURNS jsonb
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
 declare
 	v_row record;
 	v_row2 record;
@@ -43,7 +49,7 @@ begin
 			v_qry := format('select %I.%I(%L, $1, $2)', v_row.fschema, v_row.alias, p_keyword);
 			--v_qry := format(v_sql_outer_template, v_qry);
 									
-			--raise notice '%', v_qry;
+			-- raise notice '%', v_qry;
 	
 			execute v_qry into v_partial using p_filter_values, p_pointbuffer_m;
 			--raise notice '%', v_partial;
@@ -98,9 +104,12 @@ begin
 			end if;
 			v_from := format('%s %s.%s b on %s', v_from, v_row2.joinschema, v_row2.joinobj, v_row2.join_expression);
 		end if;
-	--raise notice 'v_from:%', v_from;
+	
+		-- raise notice 'v_from:%', v_from;
 	
 		v_qry := format('select %s from %s where %s', v_flds, v_from, v_row2.filter_expression);
+		-- raise notice 'fadapt:% v_qry 1:%', v_row.filteradapt, v_qry;
+
 		if not v_row.filteradapt is null and length(v_row.filteradapt) > 0 then 
 
 			select array(select json_array_elements_text(p_filter_values)) into v_arr1;			
@@ -108,12 +117,12 @@ begin
 		
 			select array(select json_array_elements_text(v_fmt_interm::json)) into v_arr2;
 		
-			v_qry := format(v_qry, variadic v_arr2);
 		else
-			v_qry := format(v_qry, json_array_elements_text(p_filter_values));
+			select ARRAY(SELECT json_array_elements_text(p_filter_values)) into v_arr2;
 		end if;
+		v_qry := format(v_qry, variadic v_arr2);
 		
-	-- raise notice 'v_qry:%', v_qry;
+		-- raise notice 'v_qry 2:%', v_qry;
 	
 		if not v_row2.orderby is null and length(v_row2.orderby) > 0 then 
 			v_qry := v_qry || ' order by ' ||  v_row2.orderby;
@@ -134,8 +143,10 @@ begin
 	return v_ret;
 
 END;
-$body$;
+$BODY$;
 
-alter function riscov2_dev.do_get(character varying, character varying, json, numeric, character varying) owner to sup_ap;
+ALTER FUNCTION riscov2_dev.do_get(character varying, character varying, json, numeric, character varying)
+    OWNER TO sup_ap;
 
-GRANT EXECUTE ON FUNCTION riscov2_dev.do_get(character varying, character varying, json, numeric, character varying) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION riscov2_dev.do_get(character varying, character varying, json, numeric, character varying) TO sup_ap;
+
