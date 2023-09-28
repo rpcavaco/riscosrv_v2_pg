@@ -54,6 +54,8 @@ BEGIN
 	v_clustersize := p_options->>'clustersize';	
 	-- raise notice 'v_geomfname:% p_key:% outsrid:%', v_geomfname, p_key, v_outsrid; 
 
+	-- NEGATIVE CLUSTERSIZE prevents clustering
+
 	if v_clustersize is null then
 		v_clustersize := 150;
 	end if;
@@ -129,7 +131,7 @@ BEGIN
 					v_sql3 := v_sql3 || format(', %s', v_label);
 				end if;
 
-				if not v_geomfname is null then
+				if not v_geomfname is null and v_clustersize > 0 then
 					v_sql1 := v_sql1 || ', ''xmin'', ST_XMin(env), ''ymin'', ST_YMin(env), ''xmax'', ST_XMax(env), ''ymax'', ST_yMax(env), ''centroids'', g.centroids';
 					if not v_outsrid is null then
 						v_sql2 := v_sql2 || format(' st_extent(st_transform(%s, %s)) env,', v_geomfname, v_outsrid);
@@ -139,18 +141,31 @@ BEGIN
 					-- v_sql3 := v_sql3 || format(', %s', v_geomfname);
 				end if;
 
-				if v_filter_expression is null then
-					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null group by %s) c cross join lateral (%s) g';
-					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
-						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
-						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null', v_geomfname, v_clustersize, v_from_constrained, v_col, v_col)));
-				else 
-					v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null and %%s group by %s) c cross join lateral (%s) g';
-					v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
-						format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
-						format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null and %%s', v_geomfname, v_clustersize, v_from_constrained, v_col, v_col)));
+				if v_clustersize > 0 then
+				
+					if v_filter_expression is null then
+						v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null group by %s) c cross join lateral (%s) g';
+						v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
+							format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
+							format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null', v_geomfname, v_clustersize, v_from_constrained, v_col, v_col)));
+					else 
+						v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null and %%s group by %s) c cross join lateral (%s) g';
+						v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
+							format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
+							format('select %s, ST_ClusterDBSCAN(%1$s, %s, 1) OVER () AS cluster from %s where %s = c.val and not %s is null and %%s', v_geomfname, v_clustersize, v_from_constrained, v_col, v_col)));
+					end if;
+					v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_col, v_sql3, v_sql4);
+
+				else
+
+					if v_filter_expression is null then
+						v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null group by %s) c';
+					else 
+						v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null and %%s group by %s) c';
+					end if;
+					v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_col, v_sql3);				
+
 				end if;
-				v_sql_proto := format(v_sql_proto_templ, v_sql1, v_sql2, v_col, v_sql3, v_sql4);
 
 				-- raise notice 'v_sql_proto >>%<<', v_sql_proto;
 
