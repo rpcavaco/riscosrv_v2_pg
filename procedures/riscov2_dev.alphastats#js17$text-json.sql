@@ -169,17 +169,21 @@ BEGIN
 
 				-- raise notice 'v_sql_proto >>%<<', v_sql_proto;
 
-				if v_filter_expression is null then
-					v_sql := format(v_sql_proto, v_col, v_from, v_col);
-				else
-					v_sql := format(v_sql_proto, v_col, v_from, v_filter_expression, v_filter_expression);
+				if v_clustersize > 0 then
+
+					if v_filter_expression is null then
+						v_sql := format(v_sql_proto, v_col, v_from, v_col);
+					else
+						v_sql := format(v_sql_proto, v_col, v_from, v_filter_expression, v_filter_expression);
+					end if;
+
+					-- raise notice 'v_sql >>%<<', v_sql;
+
+					execute v_sql into v_counts;
+
+					v_ret := jsonb_set(v_ret, array[v_col, 'classes'], to_jsonb(v_counts), true); 
+
 				end if;
-
-				-- raise notice 'v_sql >>%<<', v_sql;
-
-				execute v_sql into v_counts;
-
-				v_ret := jsonb_set(v_ret, array[v_col, 'classes'], to_jsonb(v_counts), true); 
 
 			end if;
 
