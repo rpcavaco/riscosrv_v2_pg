@@ -143,7 +143,7 @@ BEGIN
 
 				if v_clustersize > 0 then
 				
-					if v_filter_expression is null then
+					if not v_geomfname is null and v_filter_expression is null then
 						v_sql_proto_templ := '%s)) from (%s count(*) cnt from %%s where not %s is null group by %s) c cross join lateral (%s) g';
 						v_sql4 := format('select json_agg(coords) centroids from (select json_build_array(ST_X(centpt), st_y(centpt)) coords from (%s) e) f',  
 							format('select cluster, st_pointonsurface(st_union(%s)) centpt from (%s) d group by cluster', v_geomfname,
