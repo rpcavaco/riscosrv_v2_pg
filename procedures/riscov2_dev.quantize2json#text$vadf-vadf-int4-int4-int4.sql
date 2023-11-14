@@ -2,14 +2,12 @@ CREATE OR REPLACE FUNCTION riscov2_dev.quantize2json(p_creqid character varying,
  RETURNS text
  LANGUAGE 'plpgsql'
  VOLATILE
-AS $body$
-
+ 
+AS $BODY$
 DECLARE
 	v_retobj text;
 	
-	v_filter_fname text;
-	v_filter_value text;
-	v_filter_lname text;
+	v_deffilter text;
 
     v_schema text;
     v_tablename text;
@@ -37,6 +35,13 @@ DECLARE
 	v_t1 timestamp;
 	v_t2 timestamp;
 	v_profile boolean;
+	v_is_function boolean;
+
+	v_minx numeric;
+	v_miny numeric;
+	v_maxx numeric;
+	v_maxy numeric;
+	
 BEGIN
 	v_profile := 'f'; -- controle profiling layers
 
@@ -45,7 +50,7 @@ BEGIN
 		v_t1 := clock_timestamp();
 	end if;
 
-	perform set_config('search_path', 'riscov2_dev,public', true);
+	perform set_config('search_path', 'risco_v2,public', true);
 	
 	IF p_chunk < 1 OR p_chunk > p_chunks THEN
         select json_build_object('sign',v_sign,
@@ -63,10 +68,8 @@ BEGIN
     
     v_reqid := uuid(p_creqid);
     
-    SELECT cenx, ceny, wid, hei, pixsz,
-			filter_lname, filter_fname, filter_value
-    INTO v_cenx, v_ceny, v_width, v_height, v_pixsz,
-			v_filter_fname, v_filter_lname, v_filter_value
+    SELECT cenx, ceny, wid, hei, pixsz
+    INTO v_cenx, v_ceny, v_width, v_height, v_pixsz
     FROM risco_request
 	WHERE reqid = v_reqid;
 
@@ -76,10 +79,19 @@ BEGIN
 		v_t1 := v_t2;
 	end if;
 
-    SELECT lyrid, schema, dbobjname, oidfname, adic_fields_str
-    INTO v_lyrid, v_schema, v_tablename, v_oidfldname, v_adic_flds_str
+    SELECT lyrid, schema, dbobjname, oidfname, adic_fields_str, is_function, deffilter
+    INTO v_lyrid, v_schema, v_tablename, v_oidfldname, v_adic_flds_str, v_is_function, v_deffilter
     FROM risco_layerview
 	WHERE lname = p_layer_name;
+
+	if v_is_function then
+
+		v_minx := v_cenx - (v_width/2.0);
+		v_miny := v_ceny - (v_height/2.0);
+		v_maxx := v_cenx + (v_width/2.0);
+		v_maxy := v_ceny + (v_height/2.0);
+
+	end if;
 
 	if v_profile then
 		v_t2 := clock_timestamp();
@@ -87,9 +99,7 @@ BEGIN
 		v_t1 := v_t2;
 	end if;
 
-	IF NOT v_filter_fname IS NULL and LENGTH(v_filter_fname) > 0 
-		AND LOWER(v_filter_lname) = LOWER(p_layer_name)
-	THEN
+	IF NOT v_deffilter IS NULL THEN
 		v_filter_flag := true;
 	ELSE 
 		v_filter_flag := false;
@@ -134,29 +144,32 @@ BEGIN
 			v_sql := v_sql || ', ' || v_adic_flds_str;
 		END IF;
 
-		v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || ' t1 inner join delsel ' ||
+		if v_is_function then
+
+			v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || '('  || v_minx || ',' || v_miny || ',' || v_maxx || ',' || v_maxy || ') t1 inner join delsel ' ||
 				'on t1.' || v_oidfldname || ' = delsel.oidv';
+
+		else 
+
+			v_sql := v_sql || ' from ' || v_schema || '.' || v_tablename || ' t1 inner join delsel ' ||
+				'on t1.' || v_oidfldname || ' = delsel.oidv';
+
+		end if;
 	
         IF v_filter_flag THEN
 
-			v_sql := v_sql || ' and t1.' || p_filter_fname || ' = $15) a) b where b.chnk = $16) c';
-
-			EXECUTE v_sql INTO STRICT v_retobj 
-			USING v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
-					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, v_filter_value, p_chunk;
-					
+			v_sql := v_sql || ' and ' || v_deffilter || ') a) b where b.chnk = $15) c';
 
         ELSE
         
 			v_sql := v_sql || ') a) b where b.chnk = $15) c';
 
-			EXECUTE v_sql INTO STRICT v_retobj 
-			USING v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
-					v_cenx, v_ceny, v_pixsz,                     
-					p_chunks, p_vertexcnt, v_reqid, v_lyrid, p_chunk;
-
         END IF;
+
+		EXECUTE v_sql INTO STRICT v_retobj 
+		USING v_sign, p_layer_name, v_pixsz, v_cenx, v_ceny, p_chunk, p_chunks, 
+				v_cenx, v_ceny, v_pixsz,                     
+				p_chunks, p_vertexcnt, v_reqid, v_lyrid, p_chunk;
 
 		if v_profile then
 			v_t2 := clock_timestamp();
@@ -203,8 +216,7 @@ BEGIN
 	RETURN v_retobj;
 
 END;
-
-$body$;
+$BODY$;
 
 ALTER FUNCTION riscov2_dev.quantize2json(character varying, character varying, integer, integer, integer) OWNER to sup_ap;
 

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION riscov2_dev.full_chunk_calc(p_cenx double precision, p_ceny double precision, p_pixsz double precision, p_width double precision, p_height double precision, p_mapname character varying, p_vizlayers character varying, p_filter_lname character varying, p_filter_fname character varying, p_filter_value text)
+CREATE OR REPLACE FUNCTION riscov2_dev.full_chunk_calc(p_cenx double precision, p_ceny double precision, p_pixsz double precision, p_width double precision, p_height double precision, p_mapname character varying, p_vizlayers character varying)
  RETURNS text
  LANGUAGE 'plpgsql'
  VOLATILE
@@ -52,10 +52,9 @@ BEGIN
 	v_maxy := p_ceny + (p_height/2.0);
 	
 	INSERT INTO risco_request
-	(cenx, ceny, wid, hei, pixsz, filter_lname, filter_fname, filter_value)
+	(cenx, ceny, wid, hei, pixsz)
 	VALUES 
-	(p_cenx, p_ceny, p_width, p_height, p_pixsz,
-	 p_filter_lname, p_filter_fname, p_filter_value)
+	(p_cenx, p_ceny, p_width, p_height, p_pixsz)
 	RETURNING reqid INTO v_reqid;
     
     SELECT ST_MakeEnvelope(v_minx, v_miny, v_maxx, v_maxy, v_srid) INTO v_env;
@@ -74,7 +73,7 @@ BEGIN
 	end if;
 	
 	FOR v_rec IN 
-		SELECT lname, schema, dbobjname, geomfname, oidfname, lyrid, srid
+		SELECT lname, schema, dbobjname, geomfname, oidfname, lyrid, srid, is_function, deffilter
 		FROM risco_layerview 
 		WHERE inuse
 		AND p_mapname = ANY(maps) 
@@ -96,40 +95,29 @@ BEGIN
 					v_geom_source := format('ST_Transform(%I, %s)', v_rec.geomfname, v_srid);
 					v_actenv := ST_Transform(v_env, v_rec.srid);
 				end if;
-			
-				IF lower(p_filter_lname) = lower(v_rec.lname) THEN
-				
+
+				if v_rec.is_function then
+
 					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
-					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || ' ' || 
-					'where ' || v_rec.geomfname || ' && $7' ||
-					' AND ' || p_filter_fname || ' = $8';
-					
-					execute v_sql
-					using v_reqid, v_rec.lyrid, p_cenx, p_ceny, p_pixsz, p_pixsz, 
-							v_actenv, p_filter_value;
-					
-					if v_profile then
-						raise notice 'A v_sql:%, v_env:%', v_sql, ST_AsText(v_actenv);
-					end if;
+					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || '(' || v_minx || ',' || v_miny || ',' || v_maxx || ',' || v_maxy || ')';
+
+				else	
 							
-				ELSE
-				
 					v_sql := 'INSERT INTO risco_request_geometry (reqid, lyrid, oidv, the_geom) ' ||
 					'SELECT $1, $2, ' || v_rec.oidfname || ' oidv, ST_SnapToGrid(' || v_geom_source || ', $3, $4, $5, $6) the_geom ' ||
 					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || ' ' || 
 					'where ' || v_rec.geomfname || ' && $7';
 
-					if v_profile then
-						raise notice 'B v_sql:%, %, %, %, %, %, %, v_env:%', v_sql, v_reqid, v_rec.lyrid, p_cenx, p_ceny, p_pixsz, p_pixsz, ST_AsText(v_actenv);
-					end if;
+				end if;
 
-					execute v_sql
-					using v_reqid, v_rec.lyrid, p_cenx, p_ceny, p_pixsz, p_pixsz, 
-							v_actenv;
-						  
-							
-				END IF;
+				if v_profile then
+					raise notice 'B v_sql:%, %, %, %, %, %, %, v_env:%', v_sql, v_reqid, v_rec.lyrid, p_cenx, p_ceny, p_pixsz, p_pixsz, ST_AsText(v_actenv);
+				end if;
+
+				execute v_sql
+				using v_reqid, v_rec.lyrid, p_cenx, p_ceny, p_pixsz, p_pixsz, 
+						v_actenv;							
             
             EXCEPTION        
             
@@ -203,6 +191,6 @@ BEGIN
 END;
 $body$;
 
-alter function riscov2_dev.full_chunk_calc(double precision, double precision, double precision, double precision, double precision, character varying, character varying, character varying, character varying, text) owner to sup_ap;
+alter function riscov2_dev.full_chunk_calc(double precision, double precision, double precision, double precision, double precision, character varying, character varying) owner to sup_ap;
 
-GRANT EXECUTE ON FUNCTION riscov2_dev.full_chunk_calc(double precision, double precision, double precision, double precision, double precision, character varying, character varying, character varying, character varying, text) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION riscov2_dev.full_chunk_calc(double precision, double precision, double precision, double precision, double precision, character varying, character varying) TO PUBLIC;
