@@ -4,10 +4,10 @@
 
 CREATE TABLE riscov2_dev.risco_map
 (
-    mapid character varying(64) COLLATE pg_catalog."default" NOT NULL,
+    mapname character varying(64) COLLATE pg_catalog."default" NOT NULL,
     "desc" character varying COLLATE pg_catalog."default",
     srid integer NOT NULL,
-    CONSTRAINT risco_map_pk PRIMARY KEY (mapid)
+    CONSTRAINT risco_map_pk PRIMARY KEY (mapname)
 
 );
 

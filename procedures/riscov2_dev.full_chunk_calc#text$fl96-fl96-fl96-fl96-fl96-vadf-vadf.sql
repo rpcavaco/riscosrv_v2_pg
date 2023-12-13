@@ -40,10 +40,10 @@ BEGIN
 
 	select srid from risco_map rm 
 	into v_srid
-	where mapid = p_mapname;
+	where mapname = p_mapname;
 
 	if v_srid is null then
-		raise exception 'missing risco_map record for mapid: %', p_mapname;
+		raise exception 'missing risco_map record for mapname: %', p_mapname;
 	end if;
 	
 	v_minx := p_cenx - (p_width/2.0);
