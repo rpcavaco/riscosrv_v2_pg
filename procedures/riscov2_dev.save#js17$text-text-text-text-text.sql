@@ -230,6 +230,8 @@ BEGIN
 	
 			if v_operation = 'OP_INSERT' then
 
+				-- insert statment
+
 				v_fieldnames text[];
 				v_fieldvalues text[];
 
@@ -243,13 +245,20 @@ BEGIN
 					for v_properties_rec in
 						select key, value from json_each_text(v_featholder_rec.json_array_elements->'feat'->'properties')
 					loop
-						v_fieldvalue_pairs := v_fieldvalue_pairs || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, false);
+						v_fieldnames := v_fieldnames || key;
+						v_fieldvalues := v_fieldvalues || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, false);
 					end loop;
 
-				end if;
+					v_sql_template := 'insert into %I.%I (%s) values (%s)';
+					v_sql := format(
+						v_sql_template, 
+						v_editobj_schema, 
+						v_editobj_name, 
+						array_to_string(v_fieldnames, ', ')
+						array_to_string(v_fieldvalues, ', ')
+					);
 
-				-- insert statment
-				v_sql := 'ins'; 
+				end if;
 
 			elsif v_operation = 'OP_UPDATE' then
 
@@ -274,9 +283,9 @@ BEGIN
 				-- update statment
 				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'update %s set %s where %I = ''%s''';
-				else
 					v_sql_template := 'update %s set %s where %I = %s';
+				else
+					v_sql_template := 'update %s set %s where %I = ''%s''';
 				end if;
 
 				v_sql := format(v_sql_template, 				
@@ -291,6 +300,38 @@ BEGIN
 					return format('{ "state": "NOTOK", "reason": "trying to delete on layer with ''accept_deletion'' flag FALSE, sessionid:%s" }', p_sessionid)::jsonb;
 				end if;
 
+				if v_rec2.mark_as_deleted_ts_field is null then
+
+					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
+							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+						v_sql_template := 'delete from %s where %I = %s';
+					else
+						v_sql_template := 'delete from %s where %I = ''%s''';
+					end if;
+
+					v_sql := format(v_sql_template, 				
+						v_full_editobj, 
+						v_rec2.gisid_field, 
+						v_featholder_rec.json_array_elements->>'gisid');
+
+				else
+
+					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
+							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+						v_sql_template := 'update %s set %I = %L where %I = %s';
+					else
+						v_sql_template := 'update %s set %I = %L where %I = ''%s''';
+					end if;				
+
+					v_sql := format(v_sql_template, 				
+						v_full_editobj, 
+						v_rec2.mark_as_deleted_ts_field,
+						CURRENT_TIMESTAMP,
+						v_rec2.gisid_field, 
+						v_featholder_rec.json_array_elements->>'gisid');
+
+				end if;
+
 			end if;
 
 		end if;
@@ -302,10 +343,6 @@ BEGIN
 		end if;	
 
 	end loop;
-
-	/*if array_length(v_operations_list, 1) > 0 then
-
-	end if; */
 
 	RETURN v_operations_list;
 
