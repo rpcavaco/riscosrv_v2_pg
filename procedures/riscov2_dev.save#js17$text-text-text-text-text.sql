@@ -17,7 +17,6 @@ DECLARE
 	v_featholder_rec record;
 	v_properties_rec record;
 	v_geometry json;
-	-- v_properties json;
 	v_sql_template text;
 	v_cnt smallint;
 	v_operation text;
@@ -36,8 +35,6 @@ BEGIN
 	set search_path to riscov2_dev, public;
 
 	v_operations_list := '[]'::jsonb;
-
-	v_operation := 'OP_UNDEFINED';
 
 	v_ret := '{ "state": "NOTOK", "reason": "procedure not inited" }'::jsonb;
 	v_authorized := false;
@@ -94,11 +91,11 @@ BEGIN
 
 	end if;
 
-	v_sql := NULL;
-
 	if not v_authorized then
 		return format('{ "state": "NOTOK", "reason": "save attempt unauthorized, sessionid:%s" }', p_sessionid)::jsonb;
 	end if;
+
+	v_sql := NULL;
 
 	select  geomfname, oidfname, useridfname, schema, dbobjname, srid, is_function, editobj_schema, editobj_name, 
 		gisid_field, mark_as_deleted_ts_field, accept_deletion, creation_ts_field
@@ -131,7 +128,7 @@ BEGIN
 
 	end if;
 
-	if v_rec2.editobj_name is null then
+	if v_editobj_name is null then
 		return format('{ "state": "NOTOK", "reason": "layer edit object is not defined, layername:%s sessionid:%s" }', p_layer_name, p_sessionid)::jsonb;
 	end if;
 
@@ -141,6 +138,12 @@ BEGIN
 	for v_featholder_rec in
 		select json_array_elements from json_array_elements(v_payload)
 	loop
+
+		v_operation := 'OP_UNDEFINED';
+
+		v_fieldvalue_pairs := '{}';
+		v_fieldnames := '{}';
+		v_fieldvalues := '{}';
 
 		v_item_count := v_item_count + 1;
 		
@@ -153,18 +156,29 @@ BEGIN
 			and table_name = v_editobj_name
 			and column_name = v_rec2.gisid_field;
 
-			if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-				v_sql_template := 'select count(*) from %s where %I = %s';
+			if v_rec2.mark_as_deleted_ts_field is null then
+				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+					v_sql_template := 'select count(*) from %s where %I = %s';
+				else
+					v_sql_template := 'select count(*) from %s where %I = ''%s''';
+				end if;
+				v_sql := format(v_sql_template, v_full_editobj, v_rec2.gisid_field, v_featholder_rec.json_array_elements->>'gisid');
 			else
-				v_sql_template := 'select count(*) from %s where %I = ''%s''';
+				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+					v_sql_template := 'select count(*) from %s where %I = %s and %I is NULL';
+				else
+					v_sql_template := 'select count(*) from %s where %I = ''%s'' and %I is NULL';
+				end if;
+				v_sql := format(v_sql_template, v_full_editobj, v_rec2.gisid_field, v_featholder_rec.json_array_elements->>'gisid', v_rec2.mark_as_deleted_ts_field);
 			end if;
 
-			v_sql := format(v_sql_template, v_full_editobj, v_rec2.gisid_field, v_featholder_rec.json_array_elements->>'gisid');
 			execute v_sql into v_cnt;
 
 			if v_cnt < 1 then
-				return format('{ "state": "NOTOK", "reason": "error in data: gisid (%s) not null but feature not found in %s, sessionid:%s" }', v_featholder_rec.json_array_elements->>'gisid', v_full_editobj, p_sessionid)::jsonb;
+				return format('{ "state": "NOTOK", "reason": "error in data: gisid (%s) not null but active feature not found in %s, sessionid:%s, item:%s" }', v_featholder_rec.json_array_elements->>'gisid', v_full_editobj, p_sessionid, v_item_count)::jsonb;
 			end if;
+
+			-- record to edit exists in table, operation is either update or delete; if feature is null, op is delete
 
 			if (v_featholder_rec.json_array_elements->'feat') is null then
 				v_operation := 'OP_DELETE';
@@ -174,8 +188,10 @@ BEGIN
 
 		else
 
+			-- record to edit does not exist in table, operation is insert, feat must be present
+
 			if (v_featholder_rec.json_array_elements->'feat') is null then
-				return format('{ "state": "NOTOK", "reason": "no gisid and no feature JSON -- nothing to do, sessionid:%s" }', p_sessionid)::jsonb;
+				return format('{ "state": "NOTOK", "reason": "no gisid and no feature JSON -- nothing to do, sessionid:%s item:%s" }', p_sessionid, v_item_count)::jsonb;
 			else
 				v_operation := 'OP_INSERT';
 			end if;
@@ -185,49 +201,61 @@ BEGIN
 		v_sql := NULL;
 
 		if v_operation = 'OP_UNDEFINED' then		
-			return format('{ "state": "NOTOK", "reason": "internal assertion failed: operation unexpectedly undefined, sessionid:%s" }', p_sessionid)::jsonb;
+			return format('{ "state": "NOTOK", "reason": "internal assertion failed: operation unexpectedly undefined, sessionid:%s item:%s" }', p_sessionid, v_item_count)::jsonb;
 		end if;
 
 		if (v_featholder_rec.json_array_elements->'feat') is null then
 		
 			if v_operation != 'OP_DELETE' then		
-				return format('{ "state": "NOTOK", "reason": "internal assertion failed: operation %s needs feature JSON, which is null, sessionid:%s" }', v_operation, p_sessionid)::jsonb;
+				return format('{ "state": "NOTOK", "reason": "internal assertion failed: operation %s needs feature JSON, which is null, sessionid:%s item:%s" }', v_operation, p_sessionid, v_item_count)::jsonb;
 			end if;
 
 			-- delete statment
 			if not v_rec2.accept_deletion then
-				return format('{ "state": "NOTOK", "reason": "trying to delete on layer ''%s'' with ''accept_deletion'' flag FALSE, sessionid:%s" }', p_layer_name, p_sessionid)::jsonb;
+				return format('{ "state": "NOTOK", "reason": "trying to delete on layer ''%s'' with ''accept_deletion'' flag FALSE, sessionid:%s item:%s" }', p_layer_name, p_sessionid, v_item_count)::jsonb;
 			end if;
 
 			if v_rec2.mark_as_deleted_ts_field is null then
 
 				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'delete from %s where %I = %s';
+					v_sql_template := 'delete from %s where %I = %s returning %I, %I';
 				else
-					v_sql_template := 'delete from %s where %I = ''%s''';
+					v_sql_template := 'delete from %s where %I = ''%s'' returning %I, %I';
 				end if;
 
 				v_sql := format(v_sql_template, 				
 					v_full_editobj, 
 					v_rec2.gisid_field, 
-					v_featholder_rec.json_array_elements->>'gisid');
+					v_featholder_rec.json_array_elements->>'gisid',
+					v_rec2.oidfname,
+					v_rec2.gisid_field
+				);
 
 			else
 
+				if not v_rec2.useridfname is null then
+					v_fieldvalue_pairs := v_fieldvalue_pairs || format("%I = %L", v_rec2.useridfname, v_login);
+				end if;
+
+				v_fieldvalue_pairs := v_fieldvalue_pairs || format("%I = %L", v_rec2.mark_as_deleted_ts_field, CURRENT_TIMESTAMP);
+
 				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'update %s set %I = %L where %I = %s';
+					v_sql_template := 'update %s set %s where %I = %s and %I is NULL returning %I, %I';
 				else
-					v_sql_template := 'update %s set %I = %L where %I = ''%s''';
+					v_sql_template := 'update %s set %s where %I = ''%s'' and %I is NULL returning %I, %I';
 				end if;				
 
 				v_sql := format(v_sql_template, 				
 					v_full_editobj, 
-					v_rec2.mark_as_deleted_ts_field,
-					CURRENT_TIMESTAMP,
+					array_to_string(v_fieldvalue_pairs, ', '),
 					v_rec2.gisid_field, 
-					v_featholder_rec.json_array_elements->>'gisid');
+					v_featholder_rec.json_array_elements->>'gisid',
+					v_rec2.mark_as_deleted_ts_field,
+					v_rec2.oidfname,
+					v_rec2.gisid_field
+				);
 
 			end if;
 		
@@ -265,12 +293,9 @@ BEGIN
 
 				-- insert statment
 
-				v_fieldnames text[];
-				v_fieldvalues text[];
-
 				if not v_savegeom is null then				
 					v_fieldnames := v_fieldnames || format("%I", v_rec2.geomfname);
-					v_fieldvalues := v_fieldvalues || format("%L", v_savegeom);
+					v_fieldvalues := v_fieldvalues || format("%s", v_savegeom);
 				end if;
 
 				if not (v_featholder_rec.json_array_elements->'feat'->'properties') is null then
@@ -282,50 +307,130 @@ BEGIN
 						v_fieldvalues := v_fieldvalues || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, false);
 					end loop;
 
+				end if;
+
+				if not v_rec2.useridfname is null then
+					v_fieldnames := v_fieldnames || v_rec2.useridfname;
+					v_fieldvalues := v_fieldvalues || v_login;
+				end if;
+
+				if not v_rec2.creation_ts_field is null then
+					v_fieldnames := v_fieldnames || v_rec2.creation_ts_field;
+					v_fieldvalues := v_fieldvalues || format("%L", CURRENT_TIMESTAMP);
+				end if;				
+
+				v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I, %I';
+				v_sql := format(
+					v_sql_template, 
+					v_editobj_schema, 
+					v_editobj_name, 
+					array_to_string(v_fieldnames, ', '),
+					array_to_string(v_fieldvalues, ', '),
+					v_rec2.oidfname,
+					v_rec2.gisid_field
+				);
+
+			elsif v_operation = 'OP_UPDATE' then
+
+				if not v_rec2.mark_as_deleted_ts_field is null then		
+
+					-- mark previous version as deleted and insert new record version
+
+					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
+							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+						v_sql_template := 'update %s set %I = %L where %I = %s and %I is NULL';
+					else
+						v_sql_template := 'update %s set %I = %L where %I = ''%s'' and %I is NULL';
+					end if;				
+
+					v_sql := format(v_sql_template, 				
+						v_full_editobj, 
+						v_rec2.mark_as_deleted_ts_field,
+						CURRENT_TIMESTAMP,
+						v_rec2.gisid_field, 
+						v_featholder_rec.json_array_elements->>'gisid',
+						v_rec2.mark_as_deleted_ts_field
+					);
+
+					-- .... and insert new record version				
+
+					if not v_savegeom is null then				
+						v_fieldnames := v_fieldnames || format("%I", v_rec2.geomfname);
+						v_fieldvalues := v_fieldvalues || format("%s", v_savegeom);
+					end if;
+
+					if not (v_featholder_rec.json_array_elements->'feat'->'properties') is null then
+
+						for v_properties_rec in
+							select key, value from json_each_text(v_featholder_rec.json_array_elements->'feat'->'properties')
+						loop
+							v_fieldnames := v_fieldnames || key;
+							v_fieldvalues := v_fieldvalues || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, false);
+						end loop;
+
+					end if;
+
+					if not v_rec2.useridfname is null then
+						v_fieldnames := v_fieldnames || v_rec2.useridfname;
+						v_fieldvalues := v_fieldvalues || v_login;
+					end if;
+
+					if not v_rec2.creation_ts_field is null then
+						v_fieldnames := v_fieldnames || v_rec2.creation_ts_field;
+						v_fieldvalues := v_fieldvalues || format("%L", CURRENT_TIMESTAMP);
+					end if;				
+
 					v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I, %I';
 					v_sql := format(
 						v_sql_template, 
 						v_editobj_schema, 
 						v_editobj_name, 
-						array_to_string(v_fieldnames, ', ')
-						array_to_string(v_fieldvalues, ', ')
+						array_to_string(v_fieldnames, ', '),
+						array_to_string(v_fieldvalues, ', '),
+						v_rec2.oidfname,
+						v_rec2.gisid_field
+					);
+
+				else
+
+					-- SIMPLE update statment
+
+					if not v_savegeom is null then				
+						v_fieldvalue_pairs := v_fieldvalue_pairs || format('%I = %s', v_rec2.geomfname, v_savegeom);
+					end if;
+
+					if not (v_featholder_rec.json_array_elements->'feat'->'properties') is null then
+
+						for v_properties_rec in
+							select key, value from json_each_text(v_featholder_rec.json_array_elements->'feat'->'properties')
+						loop
+							v_fieldvalue_pairs := v_fieldvalue_pairs || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, true);
+						end loop;
+
+					end if;
+
+					if array_length(v_fieldvalue_pairs, 1) = 0 then
+						return format('{ "state": "NOTOK", "reason": "update operation using void data, unchanged record, sessionid:%s" }', p_sessionid)::jsonb;
+					end if;
+
+
+					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
+							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+						v_sql_template := 'update %s set %s where %I = %s returning %I, %I';
+					else
+						v_sql_template := 'update %s set %s where %I = ''%s'' returning %I, %I';
+					end if;
+
+					v_sql := format(v_sql_template, 				
+						v_full_editobj, 
+						array_to_string(v_fieldvalue_pairs, ', '),
+						v_rec2.gisid_field, 
+						v_featholder_rec.json_array_elements->>'gisid',
+						v_rec2.oidfname,
+						v_rec2.gisid_field
 					);
 
 				end if;
-
-			elsif v_operation = 'OP_UPDATE' then
-
-				if not v_savegeom is null then				
-					v_fieldvalue_pairs := v_fieldvalue_pairs || format("%I = %L", v_rec2.geomfname, v_savegeom);
-				end if;
-
-				if not (v_featholder_rec.json_array_elements->'feat'->'properties') is null then
-
-					for v_properties_rec in
-						select key, value from json_each_text(v_featholder_rec.json_array_elements->'feat'->'properties')
-					loop
-						v_fieldvalue_pairs := v_fieldvalue_pairs || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, true);
-					end loop;
-
-				end if;
-
-				if array_length(v_fieldvalue_pairs, 1) = 0 then
-					return format('{ "state": "NOTOK", "reason": "update operation using void data, unchanged record, sessionid:%s" }', p_sessionid)::jsonb;
-				end if;
-
-				-- update statment
-				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
-						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'update %s set %s where %I = %s';
-				else
-					v_sql_template := 'update %s set %s where %I = ''%s''';
-				end if;
-
-				v_sql := format(v_sql_template, 				
-					v_full_editobj, 
-					array_to_string(v_fieldvalue_pairs, ', '),
-					v_rec2.gisid_field, 
-					v_featholder_rec.json_array_elements->>'gisid');
 
 			else 
 
