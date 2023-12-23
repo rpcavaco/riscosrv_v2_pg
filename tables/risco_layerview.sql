@@ -28,8 +28,9 @@ CREATE TABLE IF NOT EXISTS riscov2_dev.risco_layerview
     editobj_name character varying(64) COLLATE pg_catalog."default",
     edit_users text[] COLLATE pg_catalog."default",
     gisid_field character varying(64) COLLATE pg_catalog."default",
-	mark_as_deleted_ts_field timestamp with time zone,
     accept_deletion boolean NOT NULL DEFAULT true
+	mark_as_deleted_ts_field character varying(64) COLLATE pg_catalog."default",
+	creation_ts_field character varying(64) COLLATE pg_catalog."default",
     CONSTRAINT risco_layer_pk PRIMARY KEY (lname)
 );
 
@@ -58,8 +59,14 @@ COMMENT ON COLUMN riscov2_dev.risco_layerview.gisid_field
     IS 'Field containing unique identification os GIS object (necessary for editing)';
 
 COMMENT ON COLUMN risco_v2.risco_layerview.mark_as_deleted_ts_field
-    IS 'Timestamp field name for turning a record marked-as-deleted ';
+    IS 'Timestamp field name for turning a record marked-as-deleted';
+
+COMMENT ON COLUMN risco_v2.risco_layerview.creation_ts_field
+    IS 'Timestamp field name for mark creation ts moment';	
 
 COMMENT ON COLUMN risco_v2.risco_layerview.accept_deletion
-    IS 'Boolean flag field, true means deletion is allowed, either as record removal or as stamping record''s marked-as-deleted flag';		
+    IS 'Boolean flag field, true means deletion is allowed, either as record removal or as stamping record''s marked-as-deleted flag';	
+
+COMMENT ON COLUMN riscov2_DEV.risco_layerview.creation_ts_field
+    IS 'Timestamp field name for mark creation ts moment';		
 	

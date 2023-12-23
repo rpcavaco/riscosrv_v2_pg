@@ -101,7 +101,7 @@ BEGIN
 	end if;
 
 	select  geomfname, oidfname, useridfname, schema, dbobjname, srid, is_function, editobj_schema, editobj_name, 
-		gisid_field, mark_as_deleted_ts_field, accept_deletion
+		gisid_field, mark_as_deleted_ts_field, accept_deletion, creation_ts_field
 	into v_rec2
 	from risco_layerview
 	where lower(trim(lname)) = lower(trim(p_layer_name))
@@ -115,10 +115,6 @@ BEGIN
 
 	if v_operation != 'OP_UNDEFINED' then 
 		return format('{ "state": "NOTOK", "reason": "operation %s prematurely defined (1), sessionid:%s" }', v_operation, p_sessionid)::jsonb;
-	end if;
-
-	if v_rec2.is_function and v_rec2.editobj_name is null then
-		return format('{ "state": "NOTOK", "reason": "layer source is function but edit object is not defined, layername:%s sessionid:%s" }', p_layer_name, p_sessionid)::jsonb;
 	end if;
 
 	if not v_rec2.editobj_name is null then
@@ -135,8 +131,11 @@ BEGIN
 
 	end if;
 
-	v_payload := p_payload_json::json;
+	if v_rec2.editobj_name is null then
+		return format('{ "state": "NOTOK", "reason": "layer edit object is not defined, layername:%s sessionid:%s" }', p_layer_name, p_sessionid)::jsonb;
+	end if;
 
+	v_payload := p_payload_json::json;
 	v_item_count := 0;
 
 	for v_featholder_rec in
@@ -196,7 +195,41 @@ BEGIN
 			end if;
 
 			-- delete statment
-			v_sql := 'del'; 
+			if not v_rec2.accept_deletion then
+				return format('{ "state": "NOTOK", "reason": "trying to delete on layer ''%s'' with ''accept_deletion'' flag FALSE, sessionid:%s" }', p_layer_name, p_sessionid)::jsonb;
+			end if;
+
+			if v_rec2.mark_as_deleted_ts_field is null then
+
+				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
+						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+					v_sql_template := 'delete from %s where %I = %s';
+				else
+					v_sql_template := 'delete from %s where %I = ''%s''';
+				end if;
+
+				v_sql := format(v_sql_template, 				
+					v_full_editobj, 
+					v_rec2.gisid_field, 
+					v_featholder_rec.json_array_elements->>'gisid');
+
+			else
+
+				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
+						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
+					v_sql_template := 'update %s set %I = %L where %I = %s';
+				else
+					v_sql_template := 'update %s set %I = %L where %I = ''%s''';
+				end if;				
+
+				v_sql := format(v_sql_template, 				
+					v_full_editobj, 
+					v_rec2.mark_as_deleted_ts_field,
+					CURRENT_TIMESTAMP,
+					v_rec2.gisid_field, 
+					v_featholder_rec.json_array_elements->>'gisid');
+
+			end if;
 		
 		else
 
@@ -249,7 +282,7 @@ BEGIN
 						v_fieldvalues := v_fieldvalues || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, false);
 					end loop;
 
-					v_sql_template := 'insert into %I.%I (%s) values (%s)';
+					v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I, %I';
 					v_sql := format(
 						v_sql_template, 
 						v_editobj_schema, 
@@ -294,43 +327,9 @@ BEGIN
 					v_rec2.gisid_field, 
 					v_featholder_rec.json_array_elements->>'gisid');
 
-			else -- OP_DELETE
+			else 
 
-				if not v_rec2.accept_deletion then
-					return format('{ "state": "NOTOK", "reason": "trying to delete on layer with ''accept_deletion'' flag FALSE, sessionid:%s" }', p_sessionid)::jsonb;
-				end if;
-
-				if v_rec2.mark_as_deleted_ts_field is null then
-
-					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
-							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-						v_sql_template := 'delete from %s where %I = %s';
-					else
-						v_sql_template := 'delete from %s where %I = ''%s''';
-					end if;
-
-					v_sql := format(v_sql_template, 				
-						v_full_editobj, 
-						v_rec2.gisid_field, 
-						v_featholder_rec.json_array_elements->>'gisid');
-
-				else
-
-					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
-							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-						v_sql_template := 'update %s set %I = %L where %I = %s';
-					else
-						v_sql_template := 'update %s set %I = %L where %I = ''%s''';
-					end if;				
-
-					v_sql := format(v_sql_template, 				
-						v_full_editobj, 
-						v_rec2.mark_as_deleted_ts_field,
-						CURRENT_TIMESTAMP,
-						v_rec2.gisid_field, 
-						v_featholder_rec.json_array_elements->>'gisid');
-
-				end if;
+				return format('{ "state": "NOTOK", "reason": "unexpected and invalid path in save function, op:%s, sessionid:%s" }', v_operation, p_sessionid)::jsonb;
 
 			end if;
 
