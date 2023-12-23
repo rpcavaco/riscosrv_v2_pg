@@ -2,7 +2,7 @@
 
 -- DROP TABLE riscov2_dev.risco_layerview;
 
-CREATE TABLE riscov2_dev.risco_layerview
+CREATE TABLE IF NOT EXISTS riscov2_dev.risco_layerview
 (
     lname character varying(64) COLLATE pg_catalog."default" NOT NULL,
     dbobjname character varying(64) COLLATE pg_catalog."default" NOT NULL,
@@ -20,22 +20,46 @@ CREATE TABLE riscov2_dev.risco_layerview
     join_expression text COLLATE pg_catalog."default",
     joinschema character varying(64) COLLATE pg_catalog."default",
     outer_join boolean,
-    orderby text COLLATE pg_catalog."default",
+    public_access boolean NOT NULL DEFAULT false,
+    is_function boolean NOT NULL DEFAULT false,
+    deffilter text COLLATE pg_catalog."default",
+    editable boolean NOT NULL DEFAULT false,
+    editobj_schema character varying(64) COLLATE pg_catalog."default",
+    editobj_name character varying(64) COLLATE pg_catalog."default",
+    edit_users text[] COLLATE pg_catalog."default",
+    gisid_field character varying(64) COLLATE pg_catalog."default",
+	mark_as_deleted_ts_field timestamp with time zone,
+    accept_deletion boolean NOT NULL DEFAULT true
     CONSTRAINT risco_layer_pk PRIMARY KEY (lname)
-
 );
 
 ALTER TABLE riscov2_dev.risco_layerview
     OWNER to sup_ap;
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.adic_fields_str
-    IS 'zero ou vários campos, separados por vírgula';
+    IS 'comma separated zero or more field names';
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.filter_expression
-    IS 'clausula where SQL';
+    IS 'SQL where clause with variable place holders, to use when layer is also used as alphanumerica row source';
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.joinobj
-    IS 'tabela (gráfica ou alfa) para fazer join';
+    IS 'database object to join to';
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.join_expression
-    IS 'expressão sql, os alias das tabelas são as letras da ordem alfabética ''a'' e ''b''';
+    IS 'SQL join expression, using one letter table aliases, in alphabetic order (ex.: ''a'', ''b'' ... )';
+
+COMMENT ON COLUMN riscov2_dev.risco_layerview.is_function
+    IS 'Layer datasource is a row returning function ?';
+
+COMMENT ON COLUMN riscov2_dev.risco_layerview.deffilter
+    IS 'SQL where clause without variables, as ''definition query''';
+
+COMMENT ON COLUMN riscov2_dev.risco_layerview.gisid_field
+    IS 'Field containing unique identification os GIS object (necessary for editing)';
+
+COMMENT ON COLUMN risco_v2.risco_layerview.mark_as_deleted_ts_field
+    IS 'Timestamp field name for turning a record marked-as-deleted ';
+
+COMMENT ON COLUMN risco_v2.risco_layerview.accept_deletion
+    IS 'Boolean flag field, true means deletion is allowed, either as record removal or as stamping record''s marked-as-deleted flag';		
+	
