@@ -11,11 +11,14 @@ DECLARE
 	v_rec2 record;
 	v_sql text;
 	v_operations_list jsonb;
+	v_out_list jsonb;
 	v_login text;
 	v_ret jsonb;
 	v_payload json;
 	v_featholder_rec record;
 	v_properties_rec record;
+	v_op_rec record;
+	v_op_ret record;	
 	v_geometry json;
 	v_sql_template text;
 	v_cnt smallint;
@@ -219,9 +222,9 @@ BEGIN
 
 				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'delete from %s where %I = %s returning %I, %I';
+					v_sql_template := 'delete from %s where %I = %s returning %I oid, %I gisid';
 				else
-					v_sql_template := 'delete from %s where %I = ''%s'' returning %I, %I';
+					v_sql_template := 'delete from %s where %I = ''%s'' returning %I oid, %I gisid';
 				end if;
 
 				v_sql := format(v_sql_template, 				
@@ -235,16 +238,16 @@ BEGIN
 			else
 
 				if not v_rec2.useridfname is null then
-					v_fieldvalue_pairs := v_fieldvalue_pairs || format("%I = %L", v_rec2.useridfname, v_login);
+					v_fieldvalue_pairs := v_fieldvalue_pairs || format('%I = %L', v_rec2.useridfname, v_login);
 				end if;
 
-				v_fieldvalue_pairs := v_fieldvalue_pairs || format("%I = %L", v_rec2.mark_as_deleted_ts_field, CURRENT_TIMESTAMP);
+				v_fieldvalue_pairs := v_fieldvalue_pairs || format('%I = %L', v_rec2.mark_as_deleted_ts_field, CURRENT_TIMESTAMP);
 
 				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'update %s set %s where %I = %s and %I is NULL returning %I, %I';
+					v_sql_template := 'update %s set %s where %I = %s and %I is NULL returning %I oid, %I gisid';
 				else
-					v_sql_template := 'update %s set %s where %I = ''%s'' and %I is NULL returning %I, %I';
+					v_sql_template := 'update %s set %s where %I = ''%s'' and %I is NULL returning %I oid, %I gisid';
 				end if;				
 
 				v_sql := format(v_sql_template, 				
@@ -294,8 +297,8 @@ BEGIN
 				-- insert statment
 
 				if not v_savegeom is null then				
-					v_fieldnames := v_fieldnames || format("%I", v_rec2.geomfname);
-					v_fieldvalues := v_fieldvalues || format("%s", v_savegeom);
+					v_fieldnames := v_fieldnames || format('%I', v_rec2.geomfname);
+					v_fieldvalues := v_fieldvalues || format('%s', v_savegeom);
 				end if;
 
 				if not (v_featholder_rec.json_array_elements->'feat'->'properties') is null then
@@ -316,10 +319,10 @@ BEGIN
 
 				if not v_rec2.creation_ts_field is null then
 					v_fieldnames := v_fieldnames || v_rec2.creation_ts_field;
-					v_fieldvalues := v_fieldvalues || format("%L", CURRENT_TIMESTAMP);
+					v_fieldvalues := v_fieldvalues || format('%L', CURRENT_TIMESTAMP);
 				end if;				
 
-				v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I, %I';
+				v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I oid, %I gisid';
 				v_sql := format(
 					v_sql_template, 
 					v_editobj_schema, 
@@ -355,8 +358,8 @@ BEGIN
 					-- .... and insert new record version				
 
 					if not v_savegeom is null then				
-						v_fieldnames := v_fieldnames || format("%I", v_rec2.geomfname);
-						v_fieldvalues := v_fieldvalues || format("%s", v_savegeom);
+						v_fieldnames := v_fieldnames || format('%I', v_rec2.geomfname);
+						v_fieldvalues := v_fieldvalues || format('%s', v_savegeom);
 					end if;
 
 					if not (v_featholder_rec.json_array_elements->'feat'->'properties') is null then
@@ -377,10 +380,10 @@ BEGIN
 
 					if not v_rec2.creation_ts_field is null then
 						v_fieldnames := v_fieldnames || v_rec2.creation_ts_field;
-						v_fieldvalues := v_fieldvalues || format("%L", CURRENT_TIMESTAMP);
+						v_fieldvalues := v_fieldvalues || format('%L', CURRENT_TIMESTAMP);
 					end if;				
 
-					v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I, %I';
+					v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I oid, %I gisid';
 					v_sql := format(
 						v_sql_template, 
 						v_editobj_schema, 
@@ -404,7 +407,7 @@ BEGIN
 						for v_properties_rec in
 							select key, value from json_each_text(v_featholder_rec.json_array_elements->'feat'->'properties')
 						loop
-							v_fieldvalue_pairs := v_fieldvalue_pairs || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, key, value, true);
+							v_fieldvalue_pairs := v_fieldvalue_pairs || json_quote_from_fieldtype(v_editobj_schema, v_editobj_name, v_properties_rec.key, v_properties_rec.value, true);
 						end loop;
 
 					end if;
@@ -416,9 +419,9 @@ BEGIN
 
 					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-						v_sql_template := 'update %s set %s where %I = %s returning %I, %I';
+						v_sql_template := 'update %s set %s where %I = %s returning %I oid, %I gisid';
 					else
-						v_sql_template := 'update %s set %s where %I = ''%s'' returning %I, %I';
+						v_sql_template := 'update %s set %s where %I = ''%s'' returning %I oid, %I gisid';
 					end if;
 
 					v_sql := format(v_sql_template, 				
@@ -448,7 +451,28 @@ BEGIN
 
 	end loop;
 
-	RETURN v_operations_list;
+	-- Execute operations list, return oid,and gisid for each
+
+	v_out_list := '[]'::jsonb;
+
+	for v_op_rec in
+		select jsonb_array_elements from jsonb_array_elements(v_operations_list)
+	loop
+
+		raise notice '--1--';
+
+		execute v_op_rec.jsonb_array_elements->>'sql' into v_op_ret;
+		raise notice '--2--';
+
+		v_out_list = v_out_list || format('{ "op": "%s", "oid": "%s", "gisid": "%s" }', v_op_rec.jsonb_array_elements->>'op', v_op_ret.oid, v_op_ret.gisid)::jsonb;
+		raise notice '--3--';
+
+		raise notice '>%', v_op_rec.jsonb_array_elements->>'sql';
+
+	end loop;
+
+
+	return format('{ "state": "OK", "results": %s }', v_out_list)::jsonb;
 
 END;
 $BODY$;
