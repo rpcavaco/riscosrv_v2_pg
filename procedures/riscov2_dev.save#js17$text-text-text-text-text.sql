@@ -32,6 +32,7 @@ DECLARE
 	v_fieldvalue_pairs text[];
 	v_fieldnames text[];
 	v_fieldvalues text[];
+	v_final_status text;
 
 BEGIN
 
@@ -454,25 +455,32 @@ BEGIN
 	-- Execute operations list, return oid,and gisid for each
 
 	v_out_list := '[]'::jsonb;
+	v_final_status := 'NOTOK';
 
 	for v_op_rec in
 		select jsonb_array_elements from jsonb_array_elements(v_operations_list)
 	loop
 
-		raise notice '--1--';
+		begin
+		
+			execute v_op_rec.jsonb_array_elements->>'sql' into v_op_ret;
 
-		execute v_op_rec.jsonb_array_elements->>'sql' into v_op_ret;
-		raise notice '--2--';
+			v_final_status := 'OK';
 
-		v_out_list = v_out_list || format('{ "op": "%s", "oid": "%s", "gisid": "%s" }', v_op_rec.jsonb_array_elements->>'op', v_op_ret.oid, v_op_ret.gisid)::jsonb;
-		raise notice '--3--';
+			v_out_list = v_out_list || format('{ "state": "OK", "op": "%s", "oid": "%s", "gisid": "%s" }', v_op_rec.jsonb_array_elements->>'op', v_op_ret.oid, v_op_ret.gisid)::jsonb;
 
-		raise notice '>%', v_op_rec.jsonb_array_elements->>'sql';
+		exception
+			when others then
+
+				insert into risco_save_dbgmsgs (msg) values (format('%s, %s, sql:%s', SQLERRM, SQLSTATE, v_op_rec.jsonb_array_elements->>'sql'));
+				v_out_list = v_out_list || format('{ "state": "NOTOK", "op": "%s", "sql": "%s" }', v_op_rec.jsonb_array_elements->>'op', v_op_rec.jsonb_array_elements->>'sql')::jsonb;
+
+		end;
 
 	end loop;
 
 
-	return format('{ "state": "OK", "results": %s }', v_out_list)::jsonb;
+	return format('{ "state": "%s", "results": %s }', v_final_status, v_out_list)::jsonb;
 
 END;
 $BODY$;
