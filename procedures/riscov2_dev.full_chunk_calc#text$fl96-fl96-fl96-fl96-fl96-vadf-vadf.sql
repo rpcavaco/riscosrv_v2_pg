@@ -170,10 +170,13 @@ BEGIN
 		ELSE
 			round(a.vcount / 20000)
 		END,
-		'nvert', a.vcount, 'gisid_field', a.gisid_field)))
+		'nvert', a.vcount, 
+		'gisid_field', a.gisid_field,
+		'accept_deletion', a.accept_deletion
+	)))
 	INTO v_ret
 	FROM
-	(SELECT lname, sum(st_npoints(the_geom)) vcount, t2.gisid_field
+	(SELECT lname, sum(st_npoints(the_geom)) vcount, t2.gisid_field, t2.accept_deletion
 	FROM risco_request_geometry T1
 	INNER JOIN risco_layerview T2
 	ON T1.lyrid = T2.lyrid AND T1.reqid = v_reqid
