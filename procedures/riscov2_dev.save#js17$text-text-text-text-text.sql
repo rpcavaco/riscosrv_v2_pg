@@ -184,7 +184,7 @@ BEGIN
 
 			-- record to edit exists in table, operation is either update or delete; if feature is null, op is delete
 
-			if (v_featholder_rec.json_array_elements->'feat') is null then
+			if v_featholder_rec.json_array_elements->'feat'->>'type' != 'Feature' then
 				v_operation := 'OP_DELETE';
 			else
 				v_operation := 'OP_UPDATE';
@@ -208,7 +208,7 @@ BEGIN
 			return format('{ "state": "NOTOK", "reason": "internal assertion failed: operation unexpectedly undefined, sessionid:%s item:%s" }', p_sessionid, v_item_count)::jsonb;
 		end if;
 
-		if (v_featholder_rec.json_array_elements->'feat') is null then
+		if v_featholder_rec.json_array_elements->'feat'->>'type' != 'Feature' then
 		
 			if v_operation != 'OP_DELETE' then		
 				return format('{ "state": "NOTOK", "reason": "internal assertion failed: operation %s needs feature JSON, which is null, sessionid:%s item:%s" }', v_operation, p_sessionid, v_item_count)::jsonb;
@@ -264,10 +264,6 @@ BEGIN
 			end if;
 		
 		else
-
-			if v_featholder_rec.json_array_elements->'feat'->>'type' != 'Feature' then
-				return format('{ "state": "NOTOK", "reason": "JSON recieved contains no Feature, sessionid:%s" }', p_sessionid)::jsonb;
-			end if;
 
 			if v_operation != 'OP_INSERT' and v_operation != 'OP_UPDATE' then		
 				return format('{ "state": "NOTOK", "reason": "internal assertion failed: operation %s not compatible with feature JSON presence, which is not null, sessionid:%s" }', v_operation, p_sessionid)::jsonb;
