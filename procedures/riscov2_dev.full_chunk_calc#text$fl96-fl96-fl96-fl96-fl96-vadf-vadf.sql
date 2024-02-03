@@ -109,6 +109,12 @@ BEGIN
 					'FROM ' || v_rec.schema || '.' || v_rec.dbobjname || ' ' || 
 					'where ' || v_rec.geomfname || ' && $7';
 
+					if not v_rec.deffilter is null then
+
+						v_sql := v_sql || ' and (' || v_rec.deffilter || ')';
+
+					end if;
+
 				end if;
 
 				if v_profile then

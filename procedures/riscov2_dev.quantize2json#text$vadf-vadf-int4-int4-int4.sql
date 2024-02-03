@@ -158,7 +158,7 @@ BEGIN
 	
         IF v_filter_flag THEN
 
-			v_sql := v_sql || ' and ' || v_deffilter || ') a) b where b.chnk = $15) c';
+			v_sql := v_sql || ' and (' || v_deffilter || ')) a) b where b.chnk = $15) c';
 
         ELSE
         
