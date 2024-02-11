@@ -72,7 +72,7 @@ def main(p_out_path, p_lic, init=None, db=None):
 		if not init is None:
 			outfp.write(init)
 
-		for type_str in ["types", "seqs", "tables"]:
+		for type_str in ["types", "seqs", "tables", "procedures"]:
 
 			if type_str == "tables":
 
@@ -89,6 +89,11 @@ def main(p_out_path, p_lic, init=None, db=None):
 				hdr = "DEFINED TYPES"
 				print_type = "Type"
 
+			elif type_str == "procedures":
+
+				hdr = "PROCEDURES"
+				print_type = "Procedure / function"
+
 
 			outfp.write(f"\n\n--------------------------------------------------------------------------------\n")
 			outfp.write(f"-- ===== {hdr} =====\n")	
@@ -100,7 +105,7 @@ def main(p_out_path, p_lic, init=None, db=None):
 
 					with codecs.open(entry.path, encoding="utf-8") as infp:
 
-						outfp.write(f"\n\n-- ----- {print_type} {splitext(basename(entry.name))[0]} -----\n")
+						outfp.write(f"\n\n-- ----- {print_type} {splitext(basename(entry.name))[0].split('#')[0]} -----\n")
 
 						wscnt = 0
 						for li, ln in enumerate(infp):
