@@ -9,7 +9,7 @@ CREATE TABLE riscov2_dev.risco_find
     ord smallint NOT NULL DEFAULT 1,
     inuse boolean NOT NULL DEFAULT true,
     filteradapt text COLLATE pg_catalog."default",
-    target risco_v2_publico.find_target,
+    target riscov2_dev.find_target,
     fschema character varying(64) COLLATE pg_catalog."default",
     CONSTRAINT pk_risco_find PRIMARY KEY (falias, ord)
 

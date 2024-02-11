@@ -5,7 +5,6 @@ CREATE SEQUENCE riscov2_dev.risco_msgs_sn_seq
 	MINVALUE 1
 	MAXVALUE 9223372036854775807
 	START 1
-	CACHE 0
 	NO CYCLE;
 
 -- Permissions

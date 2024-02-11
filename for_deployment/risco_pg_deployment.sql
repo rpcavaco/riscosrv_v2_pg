@@ -1,3 +1,4 @@
+\connect gisdata
 
 /*
 -------------------------------------------------------------------------------
@@ -27,14 +28,28 @@ SOFTWARE.
 
 -- DEPLOYMENT SCRIPT FOR RISCO v2 POSTGRESQL + POSTGIS COMPONENTS --
 
--- Generated on 2024-02-11T15:10:39.953796
-
+-- Generated on 2024-02-11T17:43:22.526913
 
 
 CREATE SCHEMA risco_v2
     AUTHORIZATION risco_v2;
 
 
+
+
+--------------------------------------------------------------------------------
+-- ===== DEFINED TYPES =====
+--------------------------------------------------------------------------------
+
+
+
+-- ----- Type find_target -----
+
+CREATE TYPE risco_v2.find_target AS ENUM
+    ('function', 'layer', 'table');
+
+ALTER TYPE risco_v2.find_target
+    OWNER TO risco_v2;
 
 
 --------------------------------------------------------------------------------
@@ -50,7 +65,6 @@ CREATE SEQUENCE risco_v2.risco_msgs_sn_seq
 	MINVALUE 1
 	MAXVALUE 9223372036854775807
 	START 1
-	CACHE 0
 	NO CYCLE;
 
 ALTER SEQUENCE risco_v2.risco_msgs_sn_seq OWNER TO risco_v2;
@@ -71,7 +85,7 @@ CREATE TABLE risco_v2.risco_find
     ord smallint NOT NULL DEFAULT 1,
     inuse boolean NOT NULL DEFAULT true,
     filteradapt text COLLATE pg_catalog."default",
-    target risco_v2_publico.find_target,
+    target risco_v2.find_target,
     fschema character varying(64) COLLATE pg_catalog."default",
     CONSTRAINT pk_risco_find PRIMARY KEY (falias, ord)
 
@@ -112,7 +126,7 @@ CREATE TABLE IF NOT EXISTS risco_v2.risco_layerview
     editobj_name character varying(64) COLLATE pg_catalog."default",
     edit_users text[] COLLATE pg_catalog."default",
     gisid_field character varying(64) COLLATE pg_catalog."default",
-    accept_deletion boolean NOT NULL DEFAULT true
+    accept_deletion boolean NOT NULL DEFAULT true,
 	mark_as_deleted_ts_field character varying(64) COLLATE pg_catalog."default",
 	creation_ts_field character varying(64) COLLATE pg_catalog."default",
     CONSTRAINT risco_layer_pk PRIMARY KEY (lname)
@@ -151,7 +165,7 @@ COMMENT ON COLUMN risco_v2.risco_layerview.creation_ts_field
 COMMENT ON COLUMN risco_v2.risco_layerview.accept_deletion
     IS 'Boolean flag field, true means deletion is allowed, either as record removal or as stamping record''s marked-as-deleted flag';
 
-COMMENT ON COLUMN riscov2_DEV.risco_layerview.creation_ts_field
+COMMENT ON COLUMN risco_v2.risco_layerview.creation_ts_field
     IS 'Timestamp field name for mark creation ts moment';
 
 

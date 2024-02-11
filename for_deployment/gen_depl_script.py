@@ -30,8 +30,7 @@ SOFTWARE.
 
 """
 
-INIT = """
-
+INIT = r"""
 
 CREATE SCHEMA risco_v2
     AUTHORIZATION risco_v2;
@@ -60,16 +59,20 @@ from os import scandir
 from os.path import basename, splitext
 from datetime import datetime
 
-def main(p_out_path, p_lic, p_init):
+def main(p_out_path, p_lic, init=None, db=None):
 
 	with codecs.open(p_out_path, "w", encoding="utf-8") as outfp:
+
+		if not db is None:
+			outfp.write(f"\\connect {db}\n")
 
 		outfp.write(p_lic)
 		outfp.write(f"-- Generated on {datetime.now().isoformat()}\n")
 
-		outfp.write(p_init)
+		if not init is None:
+			outfp.write(init)
 
-		for type_str in ["seqs", "tables"]:
+		for type_str in ["types", "seqs", "tables"]:
 
 			if type_str == "tables":
 
@@ -80,6 +83,12 @@ def main(p_out_path, p_lic, p_init):
 
 				hdr = "SEQUENCES"
 				print_type = "Sequence"
+
+			elif type_str == "types":
+
+				hdr = "DEFINED TYPES"
+				print_type = "Type"
+
 
 			outfp.write(f"\n\n--------------------------------------------------------------------------------\n")
 			outfp.write(f"-- ===== {hdr} =====\n")	
@@ -117,4 +126,4 @@ def main(p_out_path, p_lic, p_init):
 
 
 if __name__ == "__main__":
-	main(OUT_PATH, LICENSE, INIT)
+	main(OUT_PATH, LICENSE, init=INIT, db="gisdata")
