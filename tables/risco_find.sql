@@ -19,4 +19,4 @@ ALTER TABLE riscov2_dev.risco_find
     OWNER to sup_ap;
 
 COMMENT ON COLUMN riscov2_dev.risco_find.filteradapt
-    IS 'array JSON contendo itens de formatação para colocar os elementos do array de valores nas posições corretas face à localização dos parâmetros variáveis ';
+    IS 'JSON array containing format items to place values array elements in due positions similar to corresponding variable parameter positions';

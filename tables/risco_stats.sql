@@ -12,14 +12,14 @@ ALTER TABLE riscov2_dev.risco_stats
     OWNER to sup_ap;
 
 COMMENT ON COLUMN riscov2_dev.risco_stats.dataobjschema
-    IS 'nome do schema de tabela ou view com campos dos quais queremos expor estatísticas';	
+    IS 'schema name of object for which we need to expose statistics';
 
 COMMENT ON COLUMN riscov2_dev.risco_stats.dataobjname
-    IS 'nome de tabela ou view com campos dos quais queremos expor estatísticas';	
+    IS 'name of object for which we need to expose statistics';	
 
 COMMENT ON COLUMN riscov2_dev.risco_stats.allowedcols
-    IS 'colunas a cujas estatísticas queremos expor, separadas por vírgulas ou espaços';	
-
+     IS 'column names for which we need to expose statistics';	
+ 
 COMMENT ON COLUMN riscov2_dev.risco_stats.filter_expression
     IS 'constant where clause, no placeholders';	
 

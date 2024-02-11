@@ -24,16 +24,16 @@ ALTER TABLE riscov2_dev.risco_tableview
     OWNER to sup_ap;
 
 COMMENT ON COLUMN riscov2_dev.risco_tableview.fields_str
-    IS 'zero ou vários campos, separados por vírgula';
+    IS 'comma-separated zero or more fieldnames';
 
 COMMENT ON COLUMN riscov2_dev.risco_tableview.orderby
-    IS 'zero ou vários campos, separados por vírgula';
+    IS 'comma-separated zero or more fieldnames';
 
 COMMENT ON COLUMN riscov2_dev.risco_tableview.filter_expression
-    IS 'clausula where SQL com placeholders';
+    IS 'where clause with parameter placeholders';
 
 COMMENT ON COLUMN riscov2_dev.risco_tableview.joinobj
-    IS 'tabela para fazer join';
+    IS 'name of table to join';
 
 COMMENT ON COLUMN riscov2_dev.risco_tableview.join_expression
-    IS 'expressão sql, os alias das tabelas são as letras da ordem alfabética ''a'' e ''b''';
+    IS 'sql join expression ON , table aliases are letter characters in alphabetic order ''a'' e ''b''';

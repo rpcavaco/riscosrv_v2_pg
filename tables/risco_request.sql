@@ -4,7 +4,7 @@
 
 CREATE TABLE riscov2_dev.risco_request
 (
-    reqid uuid NOT NULL DEFAULT uuid_generate_v1(),
+    reqid uuid NOT NULL DEFAULT uuid_generate_v4(),
     cenx numeric NOT NULL,
     ceny numeric NOT NULL,
     wid numeric NOT NULL,

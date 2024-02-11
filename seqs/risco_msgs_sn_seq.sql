@@ -11,4 +11,3 @@ CREATE SEQUENCE riscov2_dev.risco_msgs_sn_seq
 -- Permissions
 
 ALTER SEQUENCE riscov2_dev.risco_msgs_sn_seq OWNER TO sup_ap;
-GRANT ALL ON SEQUENCE riscov2_dev.risco_msgs_sn_seq TO sup_ap;

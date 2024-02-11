@@ -41,7 +41,7 @@ COMMENT ON COLUMN riscov2_dev.risco_layerview.adic_fields_str
     IS 'comma separated zero or more field names';
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.filter_expression
-    IS 'SQL where clause with variable place holders, to use when layer is also used as alphanumerica row source';
+    IS 'SQL where clause with variable place holders, to use when layer is also used as alphanumeric row source';
 
 COMMENT ON COLUMN riscov2_dev.risco_layerview.joinobj
     IS 'database object to join to';
