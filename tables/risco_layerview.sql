@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS riscov2_dev.risco_layerview
     editobj_name character varying(64) COLLATE pg_catalog."default",
     edit_users text[] COLLATE pg_catalog."default",
     gisid_field character varying(64) COLLATE pg_catalog."default",
-    accept_deletion boolean NOT NULL DEFAULT true,
+    accept_deletion boolean NOT NULL DEFAULT false,
 	mark_as_deleted_ts_field character varying(64) COLLATE pg_catalog."default",
 	creation_ts_field character varying(64) COLLATE pg_catalog."default",
     CONSTRAINT risco_layer_pk PRIMARY KEY (lname)
