@@ -1,10 +1,6 @@
--- FUNCTION: riscov2_dev.save(text, text, text, text, text)
-
--- DROP FUNCTION riscov2_dev.save(text, text, text, text, text);
-
 CREATE OR REPLACE FUNCTION riscov2_dev.save(p_layer_name text, p_sessionid text, p_payload_json text, opt_mapname text, opt_login text)
-    RETURNS jsonb
-    LANGUAGE 'plpgsql'
+	RETURNS jsonb
+	LANGUAGE 'plpgsql'
 	VOLATILE
 AS $BODY$
 DECLARE
