@@ -1,8 +1,10 @@
+-- FUNCTION: riscov2_dev.save(text, text, text, text, text)
 
+-- DROP FUNCTION riscov2_dev.save(text, text, text, text, text);
 
 CREATE OR REPLACE FUNCTION riscov2_dev.save(p_layer_name text, p_sessionid text, p_payload_json text, opt_mapname text, opt_login text)
-	RETURNS jsonb
-	LANGUAGE 'plpgsql'
+    RETURNS jsonb
+    LANGUAGE 'plpgsql'
 	VOLATILE
 AS $BODY$
 DECLARE
@@ -37,6 +39,14 @@ DECLARE
 BEGIN
 
 	set search_path to riscov2_dev, public;
+	
+	v_login := NULL;
+	if not opt_login is null and opt_login != '' then	
+		select  arr[array_upper(arr, 1)] into v_login
+		from (
+			select regexp_split_to_array(opt_login, E'\\\\') arr
+		) a;
+	end if;
 
 	v_operations_list := '[]'::jsonb;
 
@@ -63,13 +73,13 @@ BEGIN
 
 			if v_rec.do_match_login then
 
-				if opt_login is null then
+				if v_login is null or v_login = '' then
 					return '{ "state": "NOTOK", "reason": "login must match, but no login provided" }'::jsonb;
 				end if;
 
 				v_sql := format('select %I from %I.%I where %I = %L and %I = %L and %s', v_rec.login_field, 
 					v_rec.auth_ctrl_obj_schema, v_rec.auth_ctrl_obj_name, 
-					v_rec.sessionid_field, p_sessionid, v_rec.login_field, opt_login, 
+					v_rec.sessionid_field, p_sessionid, v_rec.login_field, v_login, 
 					v_rec.editok_validation_expression);
 
 			else 
@@ -80,7 +90,7 @@ BEGIN
 					v_rec.editok_validation_expression);
 
 			end if;
-
+			
 		else
 
 			return format('{ "state": "NOTOK", "reason": "no map ''%s'' configured in risco_map_auth_session" }', opt_mapname)::jsonb;
@@ -91,7 +101,6 @@ BEGIN
 		if not v_login is null then
 			v_authorized := true;
 		end if;
-
 
 	end if;
 
@@ -413,7 +422,6 @@ BEGIN
 						return format('{ "state": "NOTOK", "reason": "update operation using void data, unchanged record, sessionid:%s" }', p_sessionid)::jsonb;
 					end if;
 
-
 					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
 						v_sql_template := 'update %s set %s where %I = %s returning %I oid, %I gisid';
@@ -474,7 +482,6 @@ BEGIN
 		end;
 
 	end loop;
-
 
 	return format('{ "state": "%s", "results": %s }', v_final_status, v_out_list)::jsonb;
 
