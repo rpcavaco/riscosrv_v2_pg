@@ -17,6 +17,7 @@ DECLARE
 	v_geomfname character varying(64);
 	v_geom_source text;
 	v_rec record;
+	v_preret json;
 	v_ret json;
     v_ctrlcnt integer;
     v_lyr_table regclass;
@@ -64,6 +65,7 @@ BEGIN
         v_vizlyrs_array := regexp_split_to_array(p_vizlayers, E'[\\s+]?[\\,][\\s+]?');
     ELSE
     	v_use_vizlayers := false;
+		v_vizlyrs_array := ARRAY[];
     END IF;
 
 	if v_profile then
@@ -152,42 +154,56 @@ BEGIN
 		
 	END LOOP;
 
-	SELECT json_build_object('reqid', v_reqid, 'stats',
+	SELECT 
 		json_object_agg(lname, 
-        json_build_object('nchunks',CASE
-		WHEN a.vcount < 5000  THEN
-			1
-		WHEN a.vcount < 10000  THEN
-			2
-		WHEN a.vcount < 25000  THEN
-			3
-		WHEN a.vcount < 50000  THEN
-			4
-		WHEN a.vcount < 90000  THEN
-			5
-		WHEN a.vcount < 120000  THEN
-			6
-		WHEN a.vcount < 140000  THEN
-			7
-		WHEN a.vcount < 160000  THEN
-			8
-		WHEN a.vcount < 180000  THEN
-			9
-		ELSE
-			round(a.vcount / 20000)
-		END,
+        json_build_object('nchunks', CASE
+			WHEN a.vcount = 0  THEN
+				0
+			WHEN a.vcount < 5000  THEN
+				1
+			WHEN a.vcount < 10000  THEN
+				2
+			WHEN a.vcount < 25000  THEN
+				3
+			WHEN a.vcount < 50000  THEN
+				4
+			WHEN a.vcount < 90000  THEN
+				5
+			WHEN a.vcount < 120000  THEN
+				6
+			WHEN a.vcount < 140000  THEN
+				7
+			WHEN a.vcount < 160000  THEN
+				8
+			WHEN a.vcount < 180000  THEN
+				9
+			ELSE
+				round(a.vcount / 20000)
+			END,
 		'nvert', a.vcount, 
 		'gisid_field', a.gisid_field,
 		'accept_deletion', a.accept_deletion
-	)))
-	INTO v_ret
+	))
+	INTO v_preret
 	FROM
-	(SELECT lname, sum(st_npoints(the_geom)) vcount, t2.gisid_field, t2.accept_deletion
-	FROM risco_request_geometry T1
-	INNER JOIN risco_layerview T2
-	ON T1.lyrid = T2.lyrid AND T1.reqid = v_reqid
-	WHERE inuse
-	GROUP BY lname) a;
+	(
+		SELECT t2.lname, coalesce(b.vcount, 0) vcount, t2.gisid_field, t2.accept_deletion
+		FROM risco_layerview T2
+		LEFT JOIN (
+			select lyrid, sum(st_npoints(the_geom)) vcount
+			from risco_request_geometry
+			where reqid = v_reqid
+			GROUP BY lyrid
+		) B
+		USING (lyrid)
+		WHERE t2.inuse
+		AND p_mapname = ANY(t2.maps) 
+		and t2.lname = any(v_vizlyrs_array)
+
+	) a;
+
+
+	SELECT json_build_object('reqid', v_reqid, 'stats', v_preret) INTO v_ret;
 
 	if v_profile then
 		v_t2 := clock_timestamp();
