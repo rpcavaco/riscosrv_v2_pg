@@ -28,7 +28,7 @@ SOFTWARE.
 
 -- DEPLOYMENT SCRIPT FOR RISCO v2 POSTGRESQL + POSTGIS COMPONENTS --
 
--- Generated on 2024-02-11T21:20:40.114187
+-- Generated on 2024-02-23T07:41:25.751590
 
 
 CREATE SCHEMA risco_v2
@@ -772,6 +772,7 @@ DECLARE
 	v_geomfname character varying(64);
 	v_geom_source text;
 	v_rec record;
+	v_preret json;
 	v_ret json;
     v_ctrlcnt integer;
     v_lyr_table regclass;
@@ -819,6 +820,7 @@ BEGIN
         v_vizlyrs_array := regexp_split_to_array(p_vizlayers, E'[\\s+]?[\\,][\\s+]?');
     ELSE
     	v_use_vizlayers := false;
+		v_vizlyrs_array := ARRAY[];
     END IF;
 
 	if v_profile then
@@ -906,42 +908,55 @@ BEGIN
 
 	END LOOP;
 
-	SELECT json_build_object('reqid', v_reqid, 'stats',
+	SELECT
 		json_object_agg(lname,
-        json_build_object('nchunks',CASE
-		WHEN a.vcount < 5000  THEN
-			1
-		WHEN a.vcount < 10000  THEN
-			2
-		WHEN a.vcount < 25000  THEN
-			3
-		WHEN a.vcount < 50000  THEN
-			4
-		WHEN a.vcount < 90000  THEN
-			5
-		WHEN a.vcount < 120000  THEN
-			6
-		WHEN a.vcount < 140000  THEN
-			7
-		WHEN a.vcount < 160000  THEN
-			8
-		WHEN a.vcount < 180000  THEN
-			9
-		ELSE
-			round(a.vcount / 20000)
-		END,
+        json_build_object('nchunks', CASE
+			WHEN a.vcount = 0  THEN
+				0
+			WHEN a.vcount < 5000  THEN
+				1
+			WHEN a.vcount < 10000  THEN
+				2
+			WHEN a.vcount < 25000  THEN
+				3
+			WHEN a.vcount < 50000  THEN
+				4
+			WHEN a.vcount < 90000  THEN
+				5
+			WHEN a.vcount < 120000  THEN
+				6
+			WHEN a.vcount < 140000  THEN
+				7
+			WHEN a.vcount < 160000  THEN
+				8
+			WHEN a.vcount < 180000  THEN
+				9
+			ELSE
+				round(a.vcount / 20000)
+			END,
 		'nvert', a.vcount,
 		'gisid_field', a.gisid_field,
 		'accept_deletion', a.accept_deletion
-	)))
-	INTO v_ret
+	))
+	INTO v_preret
 	FROM
-	(SELECT lname, sum(st_npoints(the_geom)) vcount, t2.gisid_field, t2.accept_deletion
-	FROM risco_request_geometry T1
-	INNER JOIN risco_layerview T2
-	ON T1.lyrid = T2.lyrid AND T1.reqid = v_reqid
-	WHERE inuse
-	GROUP BY lname) a;
+	(
+		SELECT t2.lname, coalesce(b.vcount, 0) vcount, t2.gisid_field, t2.accept_deletion
+		FROM risco_layerview T2
+		LEFT JOIN (
+			select lyrid, sum(st_npoints(the_geom)) vcount
+			from risco_request_geometry
+			where reqid = v_reqid
+			GROUP BY lyrid
+		) B
+		USING (lyrid)
+		WHERE t2.inuse
+		AND p_mapname = ANY(t2.maps)
+		and t2.lname = any(v_vizlyrs_array)
+
+	) a;
+
+	SELECT json_build_object('reqid', v_reqid, 'stats', v_preret) INTO v_ret;
 
 	if v_profile then
 		v_t2 := clock_timestamp();
@@ -1356,6 +1371,14 @@ BEGIN
 
 	set search_path to risco_v2, public;
 
+	v_login := NULL;
+	if not opt_login is null and opt_login != '' then
+		select  arr[array_upper(arr, 1)] into v_login
+		from (
+			select regexp_split_to_array(opt_login, E'\\\\') arr
+		) a;
+	end if;
+
 	v_operations_list := '[]'::jsonb;
 
 	v_ret := '{ "state": "NOTOK", "reason": "procedure not inited" }'::jsonb;
@@ -1381,13 +1404,13 @@ BEGIN
 
 			if v_rec.do_match_login then
 
-				if opt_login is null then
+				if v_login is null or v_login = '' then
 					return '{ "state": "NOTOK", "reason": "login must match, but no login provided" }'::jsonb;
 				end if;
 
 				v_sql := format('select %I from %I.%I where %I = %L and %I = %L and %s', v_rec.login_field,
 					v_rec.auth_ctrl_obj_schema, v_rec.auth_ctrl_obj_name,
-					v_rec.sessionid_field, p_sessionid, v_rec.login_field, opt_login,
+					v_rec.sessionid_field, p_sessionid, v_rec.login_field, v_login,
 					v_rec.editok_validation_expression);
 
 			else
