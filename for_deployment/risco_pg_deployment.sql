@@ -28,7 +28,7 @@ SOFTWARE.
 
 -- DEPLOYMENT SCRIPT FOR RISCO v2 POSTGRESQL + POSTGIS COMPONENTS --
 
--- Generated on 2024-02-23T07:41:25.751590
+-- Generated on 2024-02-25T17:07:16.696892
 
 
 CREATE SCHEMA risco_v2
@@ -262,6 +262,18 @@ CREATE INDEX ix_reqid_lyrid
 CREATE INDEX req_geom_idx
     ON risco_v2.risco_request_geometry USING btree
     (reqid ASC NULLS LAST, lyrid ASC NULLS LAST, oidv ASC NULLS LAST);
+
+
+-- ----- Table risco_save_dbgmsgs -----
+
+CREATE TABLE IF NOT EXISTS risco_v2.risco_save_dbgmsgs
+(
+    ts timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    msg text COLLATE pg_catalog."default"
+);
+
+ALTER TABLE risco_v2.risco_save_dbgmsgs
+    OWNER to risco_v2;
 
 
 -- ----- Table risco_stats -----
