@@ -24,4 +24,5 @@ As RISCO feature server is totally dependent on PostGIS, this repository holds n
 5. Installation script must be run with elevated permissions, either by a user with CREATE privilege on the given database or run by the **postgres** super user.
 
 
-## 
+> [!CAUTION]  
+> **risco_request** and **risco_request_geometry** tables are unlogged in order to offer lowest insert and select times. Specially risco_requst_geometry tends to have a VERY fast growth rate, possibly hitting MILLIONS of records in a typical use day. DON'T FORGET to provide a cleaning routine for both tables.
