@@ -41,7 +41,74 @@ Table name: ***risco_map***
 
 The **risco_map** table basically defines:
 
--  a 'mapname' (must be coincident with the webapp's 'mapname' on [basic config](https://github.com/rpcavaco/riscojs_v2#syntax-items)) of RISCO JavaScript client;
+-  a 'mapname' (must be coincident with the webapp's 'mapname' on JSON [basic config](https://github.com/rpcavaco/riscojs_v2#basic-config-syntax-items) of RISCO JavaScript client);
 -  'srid': a map's CRS (don't forget: only cartesian coordinates allowed)
 -  'descr': a map's description, just for human reference
+
+#### Layerview table
+
+Table name: ***risco_layerview***
+
+![alt text](image-1.png)
+
+The **risco_layerview** table basically indicate geometry content tables to be seen in map.
+
+It contains several fields.
+
+Required fields:
+
+- 'lname' (must be coincident with JUST ONE group key inside 'layers' collection on JSON **layers** config (link TBD) of RISCO JavaScript client);
+- 'dbobjname': a database object (table, view, materialized view or set-returning functionwith at least one geometry column, without *schema* name)
+- 'schema': schema name of database object
+- 'oidfname': object id field name (default: 'objectid')
+- 'geomfname': geometry field name to use (default: 'shape')
+- 'inuse': boolean indicating layer is currently in use
+- 'srid': layer's SRID (numerical part of CRS EPSG label)
+- 'maps': array of mapnames where you need this layer to be shown
+- 'is_function': boolean, true value indicates database object is a set-returning function
+- 'editable': boolean, true value defines database object is editable
+
+Other non required but frequently used fields:
+
+- 'adic_flds_str': string containg comma split attribute field names (must check **layers** config (link TBD) of RISCO JavaScript client in order to get these exposed in map tips or info popups)
+
+Feature edit support, required fields
+('editable' field contains 'true'):
+
+- 'gisid_field' (required): unique feature identifier (objectid is not a reliable identifier on many GIS platforms)
+- 'accept_deletion': boolean indicating DELETE operation is accepted
+
+Feature edit support, optional fields
+('editable' field still must contain 'true'):
+
+- 'editobj_schema': schema of alternate database object to recieve edits
+- 'editobj_name': alternate database object name to recieve edits
+- 'edit_user': array of login names for which edit operations are authorized
+- 'mark_as_deleted_ts_field': hname of timestamp
+
+### History records support
+
+When enabled, history records based editing prevents the deletion of any records. In this case, there are two fields, one to get automatic record creation timestamp, while the onder recieves record termination timestamp.
+
+So, during a deletion, a record being deleted just recieves the temination timestamp.
+
+During insertion, the created record just recieves record creation timestamp, record termination field is NULL.
+
+During update, current record is deleted (recieves termination timestamp) and a nem one is created (just record creation is filled).
+
+Required fields
+('editable' field still must contain 'true'):
+
+- 'mark_as_deleted_ts_field': record termination or **mark-as-deleted** timestamp field (null for one record per each feature identifier value, if feature is active or 'not deleted', non NULL for each inactive or deleted record)
+- 'creation_ts_field': record creation timestamp field  (always non NULL)
+
+Filling of this fieldnames in layerview table immediately triggers history records functionality in RISCO.
+
+
+
+
+ 
+### Set-returning function as feature source
+
+(TBD)
 
