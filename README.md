@@ -41,7 +41,7 @@ Table name: ***risco_map***
 
 The **risco_map** table basically defines:
 
--  a 'mapname' (must be coincident with the webapp's 'mapname' on [basic config](/rpcavaco/riscojs_v2#syntax-items)) of RISCO JavaScript client;
+-  a 'mapname' (must be coincident with the webapp's 'mapname' on [basic config](https://github.com/rpcavaco/riscojs_v2#syntax-items)) of RISCO JavaScript client;
 -  'srid': a map's CRS (don't forget: only cartesian coordinates allowed)
 -  'descr': a map's description, just for human reference
 
