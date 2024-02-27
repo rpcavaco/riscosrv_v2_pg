@@ -68,7 +68,10 @@ Required fields:
 - 'is_function': boolean, true value indicates database object is a set-returning function
 - 'editable': boolean, true value defines database object is editable
 
-Other non required but frequently used fields:
+> [!WARNING]  
+> Failure to fill ***ANY*** of these required fields will prevent RISCO JS client from showing, or interacting with a layer. Failure can be completely silent; an example: empty or erroneous filling of 'maps' field is enough for a layer not being shown on a given map, without any error message at all.
+
+Other non required, but frequently used, fields:
 
 - 'adic_flds_str': string containg comma split attribute field names (must check **layers** config (link TBD) of RISCO JavaScript client in order to get these exposed in map tips or info popups)
 
