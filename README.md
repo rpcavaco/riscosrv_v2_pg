@@ -26,3 +26,10 @@ As RISCO feature server is totally dependent on PostGIS, this repository holds n
 
 > [!CAUTION]  
 > **risco_request** and **risco_request_geometry** tables are unlogged in order to offer lowest insert and select times. Specially risco_requst_geometry tends to have a VERY fast growth rate, possibly hitting MILLIONS of records in a typical use day. DON'T FORGET to provide a cleaning routine for both tables.
+
+### Installing
+
+Just use a database administration tool (pgAdmin, Adminer or similar) to execute the installation script on sufficientle elevated permssions.
+
+### Configuring
+
