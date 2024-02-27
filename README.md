@@ -86,7 +86,7 @@ Feature edit support, optional fields
 - 'edit_user': array of login names for which edit operations are authorized
 - 'mark_as_deleted_ts_field': hname of timestamp
 
-### History records support
+### Automatically enable history records generation for all edit operations
 
 When enabled, history records based editing prevents the deletion of any records. In this case, there are two fields, one to get automatic record creation timestamp, while the onder recieves record termination timestamp.
 
@@ -94,7 +94,7 @@ So, during a deletion, a record being deleted just recieves the temination times
 
 During insertion, the created record just recieves record creation timestamp, record termination field is NULL.
 
-During update, current record is deleted (recieves termination timestamp) and a nem one is created (just record creation is filled).
+During update, current record is deleted (recieves termination timestamp) and a new one is created (just record creation is filled).
 
 Required fields
 ('editable' field still must contain 'true'):
@@ -102,13 +102,9 @@ Required fields
 - 'mark_as_deleted_ts_field': record termination or **mark-as-deleted** timestamp field (null for one record per each feature identifier value, if feature is active or 'not deleted', non NULL for each inactive or deleted record)
 - 'creation_ts_field': record creation timestamp field  (always non NULL)
 
-Filling of this fieldnames in layerview table immediately triggers history records functionality in RISCO.
+Filling of this fieldnames in **layerview** table should immediately trigger history records functionality in RISCO.
 
-
-
-
- 
-### Set-returning function as feature source
+### Using a set-returning function as a vector feature source
 
 (TBD)
 
