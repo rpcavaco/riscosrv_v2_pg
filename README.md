@@ -29,7 +29,19 @@ As RISCO feature server is totally dependent on PostGIS, this repository holds n
 
 ### Installing
 
-Just use a database administration tool (pgAdmin, Adminer or similar) to execute the installation script on sufficientle elevated permssions.
+Just use a database administration tool (pgAdmin, Adminer or similar) to execute the installation script on sufficiently elevated permssions.
 
 ### Configuring
+
+#### Maps table
+
+Table name: ***risco_map***
+
+ ![alt text](image.png)
+
+The **risco_map** table basically defines:
+
+-  a 'mapname' (must be coincident with the webapp's 'mapname' on [basic config](rpcavaco/riscojs_v2#syntax-items)) of RISCO JavaScript client;
+-  'srid': a map's CRS (don't forget: only cartesian coordinates allowed)
+-  'descr': a map's description, just for human reference
 
