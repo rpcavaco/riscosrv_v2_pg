@@ -125,9 +125,9 @@ BEGIN
 
 	if not v_rec2.editobj_name is null then
 
-		v_full_editobj := format('%I.%I', editobj_schema, editobj_name);
-		v_editobj_schema := editobj_schema;
-		v_editobj_name := editobj_name;
+		v_full_editobj := format('%I.%I', v_rec2.editobj_schema, v_rec2.editobj_name);
+		v_editobj_schema := v_rec2.editobj_schema;
+		v_editobj_name := v_rec2.editobj_name;
 
 	else
 
