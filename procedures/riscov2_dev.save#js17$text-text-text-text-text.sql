@@ -228,9 +228,9 @@ BEGIN
 
 				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'delete from %s where %I = %s returning %I oid, %I gisid';
+					v_sql_template := 'delete from %s where %I = %s returning %I oid, %I::text gisid';
 				else
-					v_sql_template := 'delete from %s where %I = ''%s'' returning %I oid, %I gisid';
+					v_sql_template := 'delete from %s where %I = ''%s'' returning %I oid, %I::text gisid';
 				end if;
 
 				v_sql := format(v_sql_template, 				
@@ -251,9 +251,9 @@ BEGIN
 
 				if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 						or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-					v_sql_template := 'update %s set %s where %I = %s and %I is NULL returning %I oid, %I gisid';
+					v_sql_template := 'update %s set %s where %I = %s and %I is NULL returning %I oid, %I::text gisid';
 				else
-					v_sql_template := 'update %s set %s where %I = ''%s'' and %I is NULL returning %I oid, %I gisid';
+					v_sql_template := 'update %s set %s where %I = ''%s'' and %I is NULL returning %I oid, %I::text gisid';
 				end if;				
 
 				v_sql := format(v_sql_template, 				
@@ -324,7 +324,7 @@ BEGIN
 					v_fieldvalues := v_fieldvalues || format('%L', CURRENT_TIMESTAMP);
 				end if;				
 
-				v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I oid, %I gisid';
+				v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I oid, %I::text gisid';
 				v_sql := format(
 					v_sql_template, 
 					v_editobj_schema, 
@@ -385,7 +385,7 @@ BEGIN
 						v_fieldvalues := v_fieldvalues || format('%L', CURRENT_TIMESTAMP);
 					end if;				
 
-					v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I oid, %I gisid';
+					v_sql_template := 'insert into %I.%I (%s) values (%s) returning %I oid, %I::text gisid';
 					v_sql := format(
 						v_sql_template, 
 						v_editobj_schema, 
@@ -420,9 +420,9 @@ BEGIN
 
 					if v_typ = 'integer' or v_typ = 'numeric' or v_typ = 'double precision' 
 							or v_typ = 'smallint' or v_typ = 'bigint' or v_typ = 'real' then
-						v_sql_template := 'update %s set %s where %I = %s returning %I oid, %I gisid';
+						v_sql_template := 'update %s set %s where %I = %s returning %I oid, %I::text gisid';
 					else
-						v_sql_template := 'update %s set %s where %I = ''%s'' returning %I oid, %I gisid';
+						v_sql_template := 'update %s set %s where %I = ''%s'' returning %I oid, %I::text gisid';
 					end if;
 
 					v_sql := format(v_sql_template, 				
