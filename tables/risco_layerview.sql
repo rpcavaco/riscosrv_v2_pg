@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS riscov2_dev.risco_layerview
     accept_deletion boolean NOT NULL DEFAULT false,
 	mark_as_deleted_ts_field character varying(64) COLLATE pg_catalog."default",
 	creation_ts_field character varying(64) COLLATE pg_catalog."default",
+	save_ret_fields_str text COLLATE pg_catalog."default",
     CONSTRAINT risco_layer_pk PRIMARY KEY (lname)
 );
 

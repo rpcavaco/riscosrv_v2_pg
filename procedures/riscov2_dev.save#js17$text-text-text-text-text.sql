@@ -17,6 +17,7 @@ DECLARE
 	v_properties_rec record;
 	v_op_rec record;
 	v_op_ret record;	
+	v_op_retadic record;	
 	v_geometry json;
 	v_sql_template text;
 	v_cnt smallint;
@@ -31,6 +32,7 @@ DECLARE
 	v_fieldnames text[];
 	v_fieldvalues text[];
 	v_final_status text;
+	v_retadic_qry text;
 
 BEGIN
 
@@ -107,7 +109,7 @@ BEGIN
 	v_sql := NULL;
 
 	select  geomfname, oidfname, useridfname, schema, dbobjname, srid, is_function, editobj_schema, editobj_name, 
-		gisid_field, mark_as_deleted_ts_field, accept_deletion, creation_ts_field
+		gisid_field, mark_as_deleted_ts_field, accept_deletion, creation_ts_field, save_ret_fields_str
 	into v_rec2
 	from risco_layerview
 	where lower(trim(lname)) = lower(trim(p_layer_name))
@@ -467,7 +469,19 @@ BEGIN
 
 			v_final_status := 'OK';
 
-			v_out_list = v_out_list || format('{ "state": "OK", "op": "%s", "oid": "%s", "gisid": "%s" }', v_op_rec.jsonb_array_elements->>'op', v_op_ret.oid, v_op_ret.gisid)::jsonb;
+			if not v_rec2.save_ret_fields_str is null then
+
+				v_retadic_qry := format('select (row_to_json(a))::text as adicjson from (select %s from %s where %I = %L) a', v_rec2.save_ret_fields_str, v_full_editobj, v_rec2.gisid_field, v_op_ret.gisid);
+
+				execute v_retadic_qry into v_op_retadic;
+
+				v_out_list = v_out_list || format('{ "state": "OK", "op": "%s", "oid": "%s", "gisid": "%s", "cont": %s}', v_op_rec.jsonb_array_elements->>'op', v_op_ret.oid, v_op_ret.gisid, v_op_retadic.adicjson)::jsonb;
+
+			else
+
+				v_out_list = v_out_list || format('{ "state": "OK", "op": "%s", "oid": "%s", "gisid": "%s" }', v_op_rec.jsonb_array_elements->>'op', v_op_ret.oid, v_op_ret.gisid)::jsonb;
+
+			end if;
 
 		exception
 			when others then
