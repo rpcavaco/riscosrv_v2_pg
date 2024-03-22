@@ -36,6 +36,10 @@ begin
 	-- raise notice '%', v_sql;
 	
 	execute v_sql into v_ret;
+
+	if v_ret is null then
+		v_ret := '{}'::jsonb;
+	end if;
 	
 	return v_ret;
 
